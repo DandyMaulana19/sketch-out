@@ -70,9 +70,11 @@ export interface ViewProps {
   onTheme?(t: "light" | "dark"): void;
   /** Window title suffix instead of "Sketch Out" (the folder name). */
   titleSuffix?: string;
+  /** Bumped by folder windows when something in the folder changed on disk. */
+  externalChange?: number;
 }
 
-export function DocView({ doc, env, account, setAccount, onReplace, handle, onStatus, onPath, onTheme, titleSuffix }: ViewProps) {
+export function DocView({ doc, env, account, setAccount, onReplace, handle, onStatus, onPath, onTheme, titleSuffix, externalChange }: ViewProps) {
   const [excalidrawAPI, setExcalidrawAPI] = useState<ExcalidrawImperativeAPI | null>(null);
   const [status, setStatus] = useState<SessionStatus>({ status: "saved", error: null });
   const [path, setPath] = useState(doc.kind === "local" ? doc.path : null);
@@ -141,6 +143,7 @@ export function DocView({ doc, env, account, setAccount, onReplace, handle, onSt
 
   useEffect(() => {
     if (doc.kind === "local" && doc.recovered && excalidrawAPI) excalidrawAPI.setToast({ message: "Dipulihkan dari sesi sebelumnya", duration: 4000 });
+    if (doc.kind === "local" && doc.reloaded && excalidrawAPI) excalidrawAPI.setToast({ message: "Diperbarui dari luar Sketch Out", duration: 3000 });
   }, [doc, excalidrawAPI]);
 
   // Drive sync state from the main process.
@@ -312,19 +315,27 @@ export function DocView({ doc, env, account, setAccount, onReplace, handle, onSt
     [actions, saveAs, session, doc],
   );
 
-  // Detect edits made to a local file outside the app when the window regains focus.
+  // Edits made to the file outside the app (another editor, an AI writing the file): reload silently when
+  // there is nothing unsaved here, otherwise ask. Checked on focus and when the folder watcher reports a change.
+  const checkExternal = useCallback(async () => {
+    const p = localTarget.current.path;
+    if (doc.kind !== "local" || !p || overlay) return;
+    const m = await api.files.statMtime({ path: p });
+    if (m === null) return setOverlay({ kind: "missing" });
+    if (mtime.current === null || Math.abs(m - mtime.current) <= 1) return;
+    if (session.hasUnsavedChanges) return setOverlay({ kind: "changed" });
+    const r = await api.files.read({ path: p });
+    onReplace({ kind: "local", path: p, recoveryId: null, json: r.json, mtimeMs: r.mtimeMs, recovered: false, reloaded: true });
+  }, [doc.kind, overlay, session, onReplace]);
   useEffect(() => {
-    if (doc.kind !== "local") return;
-    const onFocus = async () => {
-      const p = localTarget.current.path;
-      if (!p || overlay) return;
-      const m = await api.files.statMtime({ path: p });
-      if (m === null) setOverlay({ kind: "missing" });
-      else if (mtime.current !== null && Math.abs(m - mtime.current) > 1) setOverlay({ kind: "changed" });
-    };
+    const onFocus = () => void checkExternal().catch(() => {});
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
-  }, [overlay, doc.kind]);
+  }, [checkExternal]);
+  useEffect(() => {
+    if (externalChange) void checkExternal().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalChange]);
 
   // MCP tool calls for the note this view shows.
   useEffect(() => {

@@ -141,7 +141,15 @@ export function FolderWorkspace({ folder, env }: { folder: string; env: Env }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => api.on("folder:changed", () => void refresh()), [refresh]);
+  const [externalChange, setExternalChange] = useState(0);
+  useEffect(
+    () =>
+      api.on("folder:changed", () => {
+        void refresh();
+        setExternalChange((n) => n + 1);
+      }),
+    [refresh],
+  );
 
   // AI (MCP) asks for a note of this folder: bring it up as the active tab.
   useEffect(
@@ -307,6 +315,7 @@ export function FolderWorkspace({ folder, env }: { folder: string; env: Env }) {
               onPath={onPath}
               onTheme={setTheme}
               titleSuffix={title}
+              externalChange={externalChange}
             />
           ) : (
             !loading && <div className="so-empty">{notes.length ? "Pilih catatan di sidebar" : "Buat catatan pertama di folder ini"}</div>
