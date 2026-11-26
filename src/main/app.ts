@@ -14,6 +14,7 @@ import { getSync } from "./services/drive/instance";
 import { createConnectivity } from "./services/connectivity";
 import { getAuth } from "./services/auth/instance";
 import { startMcp } from "./mcp";
+import { registerAiHandlers } from "./ipc/aiHandlers";
 
 
 /** The normal app: windows, menus, IPC. (`index.ts` runs the MCP bridge instead when started with --mcp.) */
@@ -94,6 +95,7 @@ export function startApp(): void {
     registerAppHandlers();
     registerAuthHandlers();
     registerFolderHandlers();
+    registerAiHandlers();
     const stopMcp = startMcp();
     app.on("will-quit", stopMcp);
 

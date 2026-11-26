@@ -34,6 +34,13 @@ export interface AiRequest {
   op: AiOp;
   args: unknown;
 }
+export type AiClientId = "claude-code" | "codex" | "claude-desktop" | "opencode" | "gemini" | "cursor" | "vscode";
+export interface AiClientInfo {
+  id: AiClientId;
+  label: string;
+  restartNote: string | null;
+  status: "missing" | "available" | "connected" | "outdated" | "unreadable";
+}
 export interface FolderTabs {
   open: string[];
   active: string | null;
@@ -101,6 +108,10 @@ export interface SketchOutApi {
   ai: {
     /** Answer an `ai:request` event from main (an MCP tool call). */
     respond(i: { id: string; result?: unknown; error?: string }): Promise<void>;
+    clients(): Promise<AiClientInfo[]>;
+    connect(i: { id: AiClientId }): Promise<AiClientInfo>;
+    disconnect(i: { id: AiClientId }): Promise<AiClientInfo>;
+    copyConfig(i: { kind: "command" | "json" }): Promise<string>;
   };
   on(event: AppEvent, cb: (payload: unknown) => void): () => void;
 }

@@ -45,6 +45,10 @@ export const CHANNELS = [
   "folder:getTabs",
   "folder:setTabs",
   "ai:respond",
+  "ai:clients",
+  "ai:connect",
+  "ai:disconnect",
+  "ai:copyConfig",
 ] as const satisfies readonly string[];
 export type Channel = (typeof CHANNELS)[number];
 
