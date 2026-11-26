@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { app, BrowserWindow, net, session } from "electron";
-import { broadcast, createDocumentWindow, setRecoveryDiscarder } from "./windows";
+import { broadcast, createDocumentWindow, openDocument, setRecoveryDiscarder } from "./windows";
+import { grantPath } from "./services/grants";
 import { CSP } from "./security";
 import { installMenu } from "./menu";
 import { registerAppHandlers, registerAuthHandlers, registerFileHandlers } from "./ipc/handlers";
@@ -24,6 +25,22 @@ if (!process.env.E2E) {
   else app.setAsDefaultProtocolClient("sketchout");
 }
 
+const isDocArg = (a: string) => /\.excalidraw$/i.test(a) && !a.startsWith("-");
+const docArgs = (argv: string[]) => argv.slice(process.defaultApp ? 2 : 1).filter(isDocArg);
+let ready = false;
+const pendingFiles: string[] = [];
+function openFile(p: string): void {
+  const path = grantPath(p);
+  if (ready) openDocument({ kind: "local", path });
+  else pendingFiles.push(path);
+}
+
+// macOS Finder / Dock: may fire before "ready".
+app.on("open-file", (event, path) => {
+  event.preventDefault();
+  openFile(path);
+});
+
 app.on("open-url", (event, url) => {
   event.preventDefault();
   void app.whenReady().then(() => handleProtocolUrl(url));
@@ -31,6 +48,9 @@ app.on("open-url", (event, url) => {
 app.on("second-instance", (_e, argv) => {
   const url = argv.find((a) => a.startsWith("sketchout://"));
   if (url) void handleProtocolUrl(url);
+  const files = docArgs(argv);
+  for (const f of files) openFile(f);
+  if (!url && !files.length) BrowserWindow.getAllWindows()[0]?.focus();
 });
 
 const MAX_RECOVERED_WINDOWS = 5;
@@ -58,9 +78,12 @@ app.whenReady().then(async () => {
   if ((await getAuth().status()).signedIn) void sync.syncAllDirty();
   installMenu();
 
+  ready = true;
+  for (const f of docArgs(process.argv)) pendingFiles.push(grantPath(f));
   const leftovers = (await recovery.list()).slice(0, MAX_RECOVERED_WINDOWS);
-  if (leftovers.length) for (const id of leftovers) createDocumentWindow(null, { recoveryId: id, recovered: true });
-  else createDocumentWindow(null);
+  for (const id of leftovers) createDocumentWindow(null, { recoveryId: id, recovered: true });
+  for (const f of pendingFiles.splice(0)) openDocument({ kind: "local", path: f });
+  if (BrowserWindow.getAllWindows().length === 0) createDocumentWindow(null);
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createDocumentWindow(null);
