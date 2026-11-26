@@ -3,7 +3,7 @@ import { BrowserWindow, dialog, type IpcMainInvokeEvent } from "electron";
 import { z } from "zod";
 import { handle } from "./register";
 import { readLocalFile, writeLocalFile, statMtime } from "../services/localFiles";
-import { getAppStore } from "../services/appStores";
+import { getAppStore, getLibraryStore } from "../services/appStores";
 import { addRecent } from "../services/store";
 import { assertGranted, grantPath } from "../services/grants";
 import { RECOVERY_ID, type RecoveryStore } from "../services/recovery";
@@ -86,6 +86,16 @@ export function registerAppHandlers(): void {
   });
   handle("app:newWindow", z.undefined(), () => void createDocumentWindow(null));
   handle("app:closeWindow", z.undefined(), (_i, e) => forceClose(winOf(e)));
+
+  handle("app:getPrefs", z.undefined(), () => {
+    const { theme, langCode } = getAppStore().get();
+    return { theme, langCode };
+  });
+  handle("app:setPrefs", z.object({ theme: z.enum(["light", "dark"]).optional(), langCode: z.string().max(16).optional() }), (p) =>
+    getAppStore().set(Object.fromEntries(Object.entries(p).filter(([, v]) => v !== undefined))),
+  );
+  handle("app:loadLibrary", z.undefined(), () => getLibraryStore().get().items);
+  handle("app:saveLibrary", z.object({ items: z.array(z.unknown()).max(10_000) }), ({ items }) => getLibraryStore().set({ items }));
 }
 
 export const titleFromPath = (p: string) => basename(p, extname(p));

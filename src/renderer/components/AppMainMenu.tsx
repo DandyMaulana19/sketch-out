@@ -1,4 +1,4 @@
-import { MainMenu } from "@excalidraw/excalidraw";
+import { MainMenu, languages } from "@excalidraw/excalidraw";
 import type { ReactNode } from "react";
 import { ClockIcon, FilePlusIcon, FolderOpenIcon, SaveIcon } from "./icons";
 
@@ -11,7 +11,15 @@ export interface FileActions {
 
 export const fileName = (p: string) => p.split(/[\\/]/).pop()!.replace(/\.excalidraw$/i, "");
 
-export function AppMainMenu({ actions, recent, extra }: { actions: FileActions; recent: string[]; extra?: ReactNode }) {
+interface Props {
+  actions: FileActions;
+  recent: string[];
+  extra?: ReactNode;
+  langCode: string;
+  onLangChange(code: string): void;
+}
+
+export function AppMainMenu({ actions, recent, extra, langCode, onLangChange }: Props) {
   return (
     <MainMenu>
       <MainMenu.Item icon={FilePlusIcon} onSelect={actions.newDoc} shortcut="⌘N">Baru</MainMenu.Item>
@@ -36,6 +44,13 @@ export function AppMainMenu({ actions, recent, extra }: { actions: FileActions; 
       <MainMenu.Separator />
       <MainMenu.DefaultItems.ToggleTheme />
       <MainMenu.DefaultItems.ChangeCanvasBackground />
+      <MainMenu.ItemCustom>
+        <select className="so-lang dropdown-select" aria-label="Bahasa" value={langCode} onChange={(e) => onLangChange(e.target.value)}>
+          {languages.map((l) => (
+            <option key={l.code} value={l.code}>{l.label}</option>
+          ))}
+        </select>
+      </MainMenu.ItemCustom>
     </MainMenu>
   );
 }

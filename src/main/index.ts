@@ -5,9 +5,29 @@ import { CSP } from "./security";
 import { installMenu } from "./menu";
 import { registerAppHandlers, registerFileHandlers } from "./ipc/handlers";
 import { RecoveryStore } from "./services/recovery";
+import { handleProtocolUrl } from "./library";
 
 if (process.env.SKETCHOUT_USER_DATA) app.setPath("userData", process.env.SKETCHOUT_USER_DATA);
 app.enableSandbox();
+
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+  process.exit(0);
+}
+
+if (!process.env.E2E) {
+  if (process.defaultApp && process.argv[1]) app.setAsDefaultProtocolClient("sketchout", process.execPath, [process.argv[1]]);
+  else app.setAsDefaultProtocolClient("sketchout");
+}
+
+app.on("open-url", (event, url) => {
+  event.preventDefault();
+  void app.whenReady().then(() => handleProtocolUrl(url));
+});
+app.on("second-instance", (_e, argv) => {
+  const url = argv.find((a) => a.startsWith("sketchout://"));
+  if (url) void handleProtocolUrl(url);
+});
 
 const MAX_RECOVERED_WINDOWS = 5;
 

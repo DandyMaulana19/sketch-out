@@ -14,6 +14,10 @@ export const CHANNELS = [
   "app:openDocument",
   "app:newWindow",
   "app:closeWindow",
+  "app:getPrefs",
+  "app:setPrefs",
+  "app:loadLibrary",
+  "app:saveLibrary",
 ] as const satisfies readonly string[];
 export type Channel = (typeof CHANNELS)[number];
 

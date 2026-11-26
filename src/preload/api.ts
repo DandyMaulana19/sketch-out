@@ -13,6 +13,10 @@ export interface DocState {
   nonEmpty: boolean;
   recoveryId: string | null;
 }
+export interface Prefs {
+  theme: "light" | "dark";
+  langCode: string;
+}
 export type MenuCommand = "new" | "open" | "save" | "saveAs" | "flushThenClose" | "saveAsThenClose";
 
 /** Method names mirror CHANNELS ("ns:method" → api.ns.method). */
@@ -34,6 +38,10 @@ export interface SketchOutApi {
     openDocument(i: { doc: DocRef }): Promise<void>;
     newWindow(): Promise<void>;
     closeWindow(): Promise<void>;
+    getPrefs(): Promise<Prefs>;
+    setPrefs(i: Partial<Prefs>): Promise<void>;
+    loadLibrary(): Promise<unknown[]>;
+    saveLibrary(i: { items: unknown[] }): Promise<void>;
   };
   on(event: AppEvent, cb: (payload: unknown) => void): () => void;
 }

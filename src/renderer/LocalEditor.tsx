@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Excalidraw, getNonDeletedElements } from "@excalidraw/excalidraw";
+import type { Env } from "./App";
+import { usePrefsAndLibrary } from "./prefs";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import type { MenuCommand } from "../preload/api";
 import { DocumentSession, type SessionStatus } from "./doc/documentSession";
@@ -22,20 +24,21 @@ export interface LocalDoc {
 
 type Prompt = { kind: "changed" } | { kind: "missing" } | null;
 
-export function LocalEditor({ initial }: { initial: LocalDoc }) {
+export function LocalEditor({ initial, env }: { initial: LocalDoc; env: Env }) {
   const [doc, setDoc] = useState(initial);
   const [docKey, setDocKey] = useState(0);
-  return <DocView key={docKey} doc={doc} onReplace={(d) => { setDoc(d); setDocKey((k) => k + 1); }} />;
+  return <DocView key={docKey} doc={doc} env={env} onReplace={(d) => { setDoc(d); setDocKey((k) => k + 1); }} />;
 }
 
-function DocView({ doc, onReplace }: { doc: LocalDoc; onReplace(d: LocalDoc): void }) {
+function DocView({ doc, env, onReplace }: { doc: LocalDoc; env: Env; onReplace(d: LocalDoc): void }) {
   const [excalidrawAPI, setExcalidrawAPI] = useState<ExcalidrawImperativeAPI | null>(null);
   const [status, setStatus] = useState<SessionStatus>({ status: "saved", error: null });
   const [path, setPath] = useState(doc.path);
   const [recent, setRecent] = useState<string[]>([]);
   const [nonEmpty, setNonEmpty] = useState(false);
   const [prompt, setPrompt] = useState<Prompt>(null);
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const prefs = usePrefsAndLibrary(env, excalidrawAPI);
+  const theme = prefs.theme;
   const target = useRef({ path: doc.path, recoveryId: doc.recoveryId });
   const mtime = useRef<number | null>(doc.mtimeMs);
 
@@ -53,11 +56,13 @@ function DocView({ doc, onReplace }: { doc: LocalDoc; onReplace(d: LocalDoc): vo
   useEffect(() => () => session.dispose(), [session]);
 
   const initialData = useMemo(async () => {
-    if (!doc.json) return null;
+    const base = { libraryItems: env.library as never, appState: { theme: env.prefs.theme } };
+    if (!doc.json) return base;
     const data = await parseScene(doc.json);
     session.markSaved((data.elements ?? []) as El[], (data.files ?? {}) as Record<string, unknown>);
     setNonEmpty(getNonDeletedElements((data.elements ?? []) as El[]).length > 0);
-    return data;
+    return { ...data, ...base, appState: { ...data.appState, theme: env.prefs.theme } };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc.json, session]);
 
   const refreshRecent = useCallback(() => void api.files.recent().then(setRecent), []);
@@ -168,17 +173,19 @@ function DocView({ doc, onReplace }: { doc: LocalDoc; onReplace(d: LocalDoc): vo
       <Excalidraw
         excalidrawAPI={setExcalidrawAPI}
         initialData={initialData}
-        langCode="id-ID"
+        langCode={prefs.langCode}
+        libraryReturnUrl="sketchout://addLibrary"
+        onLibraryChange={prefs.onLibraryChange}
         onChange={(elements, appState, files) => {
           session.onChange(elements, appState, files);
           const ne = getNonDeletedElements(elements).length > 0;
           if (ne !== nonEmpty) setNonEmpty(ne);
-          if (appState.theme !== theme) setTheme(appState.theme);
+          if (appState.theme !== theme) prefs.setTheme(appState.theme);
         }}
         UIOptions={{ canvasActions: { loadScene: false, saveToActiveFile: false, export: false } }}
         renderTopRightUI={() => <SyncBadge view={badge} />}
       >
-        <AppMainMenu actions={actions} recent={recent} />
+        <AppMainMenu actions={actions} recent={recent} langCode={prefs.langCode} onLangChange={prefs.setLangCode} />
         <AppWelcomeScreen actions={actions} recent={recent} />
       </Excalidraw>
       {prompt?.kind === "changed" && (
