@@ -13,6 +13,7 @@ import { openFolder, registerFolderHandlers } from "./ipc/folderHandlers";
 import { getSync } from "./services/drive/instance";
 import { createConnectivity } from "./services/connectivity";
 import { getAuth } from "./services/auth/instance";
+import { startMcp } from "./mcp";
 
 
 /** The normal app: windows, menus, IPC. (`index.ts` runs the MCP bridge instead when started with --mcp.) */
@@ -93,6 +94,8 @@ export function startApp(): void {
     registerAppHandlers();
     registerAuthHandlers();
     registerFolderHandlers();
+    const stopMcp = startMcp();
+    app.on("will-quit", stopMcp);
 
     const sync = getSync();
     sync.on("state", (st) => broadcast("sync:state", st));

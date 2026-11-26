@@ -44,9 +44,10 @@ export const CHANNELS = [
   "folder:trash",
   "folder:getTabs",
   "folder:setTabs",
+  "ai:respond",
 ] as const satisfies readonly string[];
 export type Channel = (typeof CHANNELS)[number];
 
 /** Events main → renderer. */
-export const EVENTS = ["sync:state", "menu:command", "library:add", "doc:open", "folder:changed"] as const;
+export const EVENTS = ["sync:state", "menu:command", "library:add", "doc:open", "folder:changed", "ai:request"] as const;
 export type AppEvent = (typeof EVENTS)[number];

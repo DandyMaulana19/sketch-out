@@ -21,12 +21,12 @@ async function isDir(p: string): Promise<boolean> {
 }
 
 /** Open (or focus) a folder window for a directory the user picked, and remember it. */
-export async function openFolder(dir: string): Promise<void> {
+export async function openFolder(dir: string): Promise<BrowserWindow> {
   if (!(await isDir(dir))) throw new Error("Folder tidak ditemukan");
   const abs = grantFolder(dir);
   const store = getAppStore();
   await store.set({ recentFolders: addRecent(store.get().recentFolders, abs) });
-  openFolderWindow(abs);
+  return openFolderWindow(abs);
 }
 
 export async function openFolderFromDialog(parent?: BrowserWindow | null): Promise<void> {
@@ -46,11 +46,13 @@ const insideRoot = (root: string, rel: string) => {
 export function registerFolderHandlers(): void {
   for (const d of getAppStore().get().recentFolders) grantFolder(d);
 
-  handle("folder:openDialog", z.undefined(), (_i, e) => openFolderFromDialog(BrowserWindow.fromWebContents(e.sender)));
-  handle("folder:open", z.object({ dir: z.string().max(4096) }), ({ dir }) => {
+  handle("folder:openDialog", z.undefined(), async (_i, e) => {
+    await openFolderFromDialog(BrowserWindow.fromWebContents(e.sender));
+  });
+  handle("folder:open", z.object({ dir: z.string().max(4096) }), async ({ dir }) => {
     const abs = resolve(dir);
     if (!getAppStore().get().recentFolders.includes(abs)) throw new Error("Path not permitted");
-    return openFolder(abs);
+    await openFolder(abs);
   });
   handle("folder:recent", z.undefined(), () => getAppStore().get().recentFolders);
   handle("folder:list", z.object({ dir: z.string().max(4096) }), ({ dir }) => listNotes(assertRoot(dir)));

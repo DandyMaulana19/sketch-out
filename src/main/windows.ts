@@ -142,3 +142,28 @@ export function openFolderWindow(dir: string): BrowserWindow {
   });
   return win;
 }
+
+const isInside = (p: string, dir: string) => p.startsWith(dir.endsWith("/") ? dir : `${dir}/`);
+
+/** The open folder window whose folder contains `path` (the deepest one wins). */
+export function findFolderWindowFor(path: string): BrowserWindow | null {
+  let best: [string, BrowserWindow] | null = null;
+  for (const [dir, w] of folderWindows)
+    if (!w.isDestroyed() && isInside(path, dir) && (!best || dir.length > best[0].length)) best = [dir, w];
+  return best?.[1] ?? null;
+}
+
+/** What each window shows, for the AI's get_workspace tool. */
+export function describeWindows(): ({ kind: "folder"; folder: string; active: string | null } | { kind: "file"; path: string | null })[] {
+  const out: ({ kind: "folder"; folder: string; active: string | null } | { kind: "file"; path: string | null })[] = [];
+  for (const w of BrowserWindow.getAllWindows()) {
+    if (w.isDestroyed()) continue;
+    const i = infos.get(w.webContents.id);
+    if (!i) continue;
+    const doc = i.state?.doc;
+    const path = doc?.kind === "local" ? doc.path : null;
+    if (i.initial.folder) out.push({ kind: "folder", folder: i.initial.folder, active: path });
+    else if (!doc || doc.kind === "local") out.push({ kind: "file", path });
+  }
+  return out;
+}

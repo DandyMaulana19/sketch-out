@@ -27,6 +27,13 @@ export interface Prefs {
   langCode: string;
 }
 export type MenuCommand = "new" | "open" | "save" | "saveAs" | "flushThenClose" | "saveAsThenClose" | "closeTab" | "nextTab" | "prevTab";
+export type AiOp = "read" | "view" | "add" | "update" | "delete" | "mermaid";
+export interface AiRequest {
+  id: string;
+  path: string;
+  op: AiOp;
+  args: unknown;
+}
 export interface FolderTabs {
   open: string[];
   active: string | null;
@@ -90,6 +97,10 @@ export interface SketchOutApi {
     /** Paths relative to the folder. */
     getTabs(i: { dir: string }): Promise<FolderTabs>;
     setTabs(i: { dir: string } & FolderTabs): Promise<void>;
+  };
+  ai: {
+    /** Answer an `ai:request` event from main (an MCP tool call). */
+    respond(i: { id: string; result?: unknown; error?: string }): Promise<void>;
   };
   on(event: AppEvent, cb: (payload: unknown) => void): () => void;
 }
