@@ -6,7 +6,17 @@ Whiteboard desktop berbasis editor Excalidraw resmi (`@excalidraw/excalidraw`, M
 - **Mode folder**: buka satu folder (**File › Buka folder…**, `⌘⇧O`) untuk melihat semua catatan `.excalidraw` di dalamnya, termasuk di subfolder, dalam sidebar berbentuk pohon. Catatan yang dibuka muncul sebagai tab (`Ctrl+Tab` untuk pindah, `⌘W` untuk menutup tab). Sebelum pindah tab, perubahan disimpan dulu. Tab yang terbuka diingat per folder. Subfolder yang tidak berisi catatan tidak ditampilkan. Folder tersembunyi dan `node_modules` dilewati.
 - **Google Drive**: setiap perubahan langsung disimpan dulu ke cache di perangkat. Saat online, perubahan diunggah ke folder `Sketch Out` di Drive. Saat offline, perubahan menunggu di cache dan diunggah otomatis begitu online lagi. Kalau file di Drive diubah dari tempat lain, versimu disimpan sebagai salinan `… (konflik YYYY-MM-DD HH.mm)`, jadi tidak ada yang tertimpa.
 
+> **Pakai Mac?** Gunakan branch [`macos`](../../tree/macos), yang sudah dites penuh di macOS:
+>
+> ```bash
+> git clone -b macos https://github.com/<username>/sketch-out.git
+> ```
+>
+> Branch `main` berisi kode untuk Windows dan macOS. Versi Windows-nya belum dites di PC Windows sungguhan.
+
 ## Clone dan build sendiri (macOS Apple Silicon)
+
+Untuk Mac, pakai branch `macos` (lihat catatan di atas).
 
 ### Yang perlu disiapkan
 - Mac dengan chip Apple Silicon (M1 atau lebih baru)
@@ -15,10 +25,10 @@ Whiteboard desktop berbasis editor Excalidraw resmi (`@excalidraw/excalidraw`, M
 - Ruang disk kosong sekitar 2 GB untuk dependensi dan proses build.
 
 ### Langkah
-1. Clone repo, lalu masuk ke foldernya:
+1. Clone branch `macos`, lalu masuk ke foldernya:
 
    ```bash
-   git clone https://github.com/<username>/sketch-out.git
+   git clone -b macos https://github.com/<username>/sketch-out.git
    ```
 
    ```bash
