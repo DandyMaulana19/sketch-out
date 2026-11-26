@@ -57,6 +57,27 @@ Login Google butuh OAuth Client milikmu sendiri:
 
 Aplikasi hanya meminta izin `drive.file`: ia hanya bisa melihat file yang dibuatnya sendiri, bukan seluruh isi Drive-mu. File `.excalidraw` lama di Drive yang tidak dibuat oleh Sketch Out tidak terlihat. Unduh dulu file seperti itu, lalu buka sebagai file lokal.
 
+## Menghubungkan ke AI (MCP)
+
+Sketch Out punya MCP server sendiri, jadi AI seperti Claude Code, Codex, Claude Desktop, OpenCode, Gemini CLI, Cursor, dan VS Code bisa membaca dan menggambar di catatanmu. Hasilnya langsung muncul di kanvas, dan setiap perintah AI bisa dibatalkan dengan satu kali undo.
+
+1. Buka menu ☰ › **Hubungkan ke AI…** (atau **Sketch Out › Hubungkan ke AI…**).
+2. Klik **Hubungkan** pada AI yang kamu pakai. Sketch Out menulis pengaturannya sendiri: lewat `claude mcp add` atau `codex mcp add`, atau dengan menambah entri `sketch-out` di file pengaturan AI tersebut. Sebelum mengubah file, Sketch Out membuat cadangan `*.sketchout.bak`.
+3. Minta AI-nya, misalnya: *"gambarkan alur login di catatan alur"*, atau *"rapikan diagram yang sedang kubuka"*.
+
+Untuk AI lain yang mendukung MCP, pakai **Salin perintah** atau **Salin JSON**. Perintahnya adalah `"/Applications/Sketch Out.app/Contents/MacOS/Sketch Out" --mcp`.
+
+Cara kerjanya: AI menjalankan `Sketch Out --mcp`, yang meneruskan permintaan ke Sketch Out yang sedang berjalan lewat socket lokal (`~/Library/Application Support/Sketch Out/mcp.sock`, hanya bisa diakses akunmu, tanpa port jaringan). Kalau Sketch Out belum terbuka, app dibuka otomatis.
+
+Alat yang tersedia untuk AI:
+- `get_workspace`, `list_notes`, `read_note`, `view_note` (gambar PNG)
+- `add_elements`, `update_elements`, `delete_elements`
+- `create_note`, `add_mermaid`
+
+AI hanya bisa menyentuh folder dan file yang sudah kamu buka di Sketch Out, dan tidak bisa menghapus atau mengganti nama catatan.
+
+Catatan yang diubah dari luar (oleh AI lewat file, atau editor lain) dimuat ulang otomatis bila tidak ada suntingan yang belum tersimpan.
+
 ## Keamanan
 
 - Renderer berjalan di sandbox: `contextIsolation`, tanpa `nodeIntegration`, dengan CSP ketat. Ia hanya bisa memanggil API bertipe `window.sketchOut`, dan setiap input divalidasi dengan zod.
