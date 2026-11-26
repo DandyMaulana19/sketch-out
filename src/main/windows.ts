@@ -6,6 +6,7 @@ import type { DocState, InitialDoc, MenuCommand } from "../preload/api";
 import { installNavigationGuards, secureWebPreferences } from "./security";
 import { WindowRegistry } from "./windowRegistry";
 import { QuitState } from "./quitState";
+import { watchFolder } from "./services/folders";
 
 interface WinInfo {
   initial: InitialDoc;
@@ -33,7 +34,10 @@ export function infoFor(contents: WebContents): WinInfo {
   return i;
 }
 
-export function createDocumentWindow(doc: DocRef | null, opts: { recoveryId?: string; recovered?: boolean } = {}): BrowserWindow {
+export function createDocumentWindow(
+  doc: DocRef | null,
+  opts: { recoveryId?: string; recovered?: boolean; folder?: string } = {},
+): BrowserWindow {
   const win = new BrowserWindow({
     width: 1280,
     height: 820,
@@ -44,10 +48,11 @@ export function createDocumentWindow(doc: DocRef | null, opts: { recoveryId?: st
     webPreferences: secureWebPreferences(join(__dirname, "../preload/index.cjs")),
   });
   const id = win.webContents.id;
-  const needsRecovery = !doc || (doc.kind === "local" && !doc.path);
+  const needsRecovery = !opts.folder && (!doc || (doc.kind === "local" && !doc.path));
   infos.set(id, {
     initial: {
-      doc: doc ?? { kind: "local", path: null },
+      doc: opts.folder ? null : (doc ?? { kind: "local", path: null }),
+      folder: opts.folder ?? null,
       recoveryId: needsRecovery ? (opts.recoveryId ?? randomUUID()) : null,
       recovered: !!opts.recovered,
     },
@@ -112,4 +117,28 @@ export function openDocument(doc: DocRef): BrowserWindow {
 
 export function broadcast(channel: string, payload: unknown): void {
   for (const w of BrowserWindow.getAllWindows()) if (!w.isDestroyed()) w.webContents.send(channel, payload);
+}
+
+const folderWindows = new Map<string, BrowserWindow>();
+
+export function isFolderWindow(win: BrowserWindow): boolean {
+  return !!infos.get(win.webContents.id)?.initial.folder;
+}
+
+/** Focus the window already showing folder `dir`, or open one (watching the folder for changes). */
+export function openFolderWindow(dir: string): BrowserWindow {
+  const existing = folderWindows.get(dir);
+  if (existing && !existing.isDestroyed()) {
+    if (existing.isMinimized()) existing.restore();
+    existing.focus();
+    return existing;
+  }
+  const win = createDocumentWindow(null, { folder: dir });
+  folderWindows.set(dir, win);
+  const stop = watchFolder(dir, () => !win.isDestroyed() && win.webContents.send("folder:changed", { dir }));
+  win.once("closed", () => {
+    stop();
+    if (folderWindows.get(dir) === win) folderWindows.delete(dir);
+  });
+  return win;
 }

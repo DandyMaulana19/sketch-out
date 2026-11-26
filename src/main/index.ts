@@ -1,3 +1,4 @@
+import { statSync } from "node:fs";
 import { join } from "node:path";
 import { app, BrowserWindow, net, session } from "electron";
 import { broadcast, createDocumentWindow, openDocument, setRecoveryDiscarder } from "./windows";
@@ -8,6 +9,7 @@ import { registerAppHandlers, registerAuthHandlers, registerFileHandlers } from 
 import { RecoveryStore } from "./services/recovery";
 import { handleProtocolUrl } from "./library";
 import { registerDriveHandlers } from "./ipc/driveHandlers";
+import { openFolder, registerFolderHandlers } from "./ipc/folderHandlers";
 import { getSync } from "./services/drive/instance";
 import { createConnectivity } from "./services/connectivity";
 import { getAuth } from "./services/auth/instance";
@@ -27,9 +29,23 @@ if (!process.env.E2E) {
 
 const isDocArg = (a: string) => /\.excalidraw$/i.test(a) && !a.startsWith("-");
 const docArgs = (argv: string[]) => argv.slice(process.defaultApp ? 2 : 1).filter(isDocArg);
+const isDir = (p: string) => {
+  try {
+    return statSync(p).isDirectory();
+  } catch {
+    return false;
+  }
+};
+const folderArgs = (argv: string[]) => argv.slice(process.defaultApp ? 2 : 1).filter((a) => !a.startsWith("-") && isDir(a));
 let ready = false;
 const pendingFiles: string[] = [];
+const pendingFolders: string[] = [];
+function openFolderPath(p: string): void {
+  if (ready) void openFolder(p).catch(() => {});
+  else pendingFolders.push(p);
+}
 function openFile(p: string): void {
+  if (isDir(p)) return openFolderPath(p);
   const path = grantPath(p);
   if (ready) openDocument({ kind: "local", path });
   else pendingFiles.push(path);
@@ -49,8 +65,10 @@ app.on("second-instance", (_e, argv) => {
   const url = argv.find((a) => a.startsWith("sketchout://"));
   if (url) void handleProtocolUrl(url);
   const files = docArgs(argv);
+  const folders = folderArgs(argv);
   for (const f of files) openFile(f);
-  if (!url && !files.length) BrowserWindow.getAllWindows()[0]?.focus();
+  for (const d of folders) openFolderPath(d);
+  if (!url && !files.length && !folders.length) BrowserWindow.getAllWindows()[0]?.focus();
 });
 
 const MAX_RECOVERED_WINDOWS = 5;
@@ -70,6 +88,7 @@ app.whenReady().then(async () => {
   registerFileHandlers(recovery);
   registerAppHandlers();
   registerAuthHandlers();
+  registerFolderHandlers();
 
   const sync = getSync();
   sync.on("state", (st) => broadcast("sync:state", st));
@@ -83,6 +102,7 @@ app.whenReady().then(async () => {
   const leftovers = (await recovery.list()).slice(0, MAX_RECOVERED_WINDOWS);
   for (const id of leftovers) createDocumentWindow(null, { recoveryId: id, recovered: true });
   for (const f of pendingFiles.splice(0)) openDocument({ kind: "local", path: f });
+  for (const d of [...pendingFolders.splice(0), ...folderArgs(process.argv)]) await openFolder(d).catch(() => {});
   if (BrowserWindow.getAllWindows().length === 0) createDocumentWindow(null);
 
   app.on("activate", () => {

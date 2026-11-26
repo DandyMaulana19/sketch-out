@@ -35,9 +35,18 @@ export const CHANNELS = [
   "sync:dismissNotice",
   "sync:reportOnline",
   "sync:pendingCount",
+  "folder:openDialog",
+  "folder:open",
+  "folder:recent",
+  "folder:list",
+  "folder:create",
+  "folder:rename",
+  "folder:trash",
+  "folder:getTabs",
+  "folder:setTabs",
 ] as const satisfies readonly string[];
 export type Channel = (typeof CHANNELS)[number];
 
 /** Events main → renderer. */
-export const EVENTS = ["sync:state", "menu:command", "library:add", "doc:open"] as const;
+export const EVENTS = ["sync:state", "menu:command", "library:add", "doc:open", "folder:changed"] as const;
 export type AppEvent = (typeof EVENTS)[number];

@@ -1,8 +1,10 @@
 import type { AppEvent } from "../shared/ipc";
-import type { DocRef, DriveFileInfo, SyncState } from "../shared/types";
+import type { DocRef, DriveFileInfo, NoteInfo, SyncState } from "../shared/types";
 
 export interface InitialDoc {
   doc: DocRef | null;
+  /** Set when this window shows an opened folder (sidebar + tabs). */
+  folder: string | null;
   recoveryId: string | null;
   recovered: boolean;
 }
@@ -24,7 +26,11 @@ export interface Prefs {
   theme: "light" | "dark";
   langCode: string;
 }
-export type MenuCommand = "new" | "open" | "save" | "saveAs" | "flushThenClose" | "saveAsThenClose";
+export type MenuCommand = "new" | "open" | "save" | "saveAs" | "flushThenClose" | "saveAsThenClose" | "closeTab" | "nextTab" | "prevTab";
+export interface FolderTabs {
+  open: string[];
+  active: string | null;
+}
 
 /** Method names mirror CHANNELS ("ns:method" → api.ns.method). */
 export interface SketchOutApi {
@@ -72,6 +78,18 @@ export interface SketchOutApi {
     dismissNotice(i: { localId: string }): Promise<void>;
     reportOnline(i: { online: boolean }): Promise<void>;
     pendingCount(): Promise<number>;
+  };
+  folder: {
+    openDialog(): Promise<void>;
+    open(i: { dir: string }): Promise<void>;
+    recent(): Promise<string[]>;
+    list(i: { dir: string }): Promise<NoteInfo[]>;
+    create(i: { dir: string; name: string; json: string }): Promise<{ path: string }>;
+    rename(i: { path: string; name: string }): Promise<{ path: string }>;
+    trash(i: { path: string }): Promise<void>;
+    /** Paths relative to the folder. */
+    getTabs(i: { dir: string }): Promise<FolderTabs>;
+    setTabs(i: { dir: string } & FolderTabs): Promise<void>;
   };
   on(event: AppEvent, cb: (payload: unknown) => void): () => void;
 }

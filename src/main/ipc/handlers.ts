@@ -5,7 +5,7 @@ import { handle } from "./register";
 import { readLocalFile, writeLocalFile, statMtime } from "../services/localFiles";
 import { getAppStore, getLibraryStore } from "../services/appStores";
 import { addRecent } from "../services/store";
-import { assertGranted, grantPath } from "../services/grants";
+import { assertGranted, grantPath, inGrantedFolder } from "../services/grants";
 import { RECOVERY_ID, type RecoveryStore } from "../services/recovery";
 import { createDocumentWindow, forceClose, infoFor, openDocument, quitState, registry } from "../windows";
 import { forgetFolder, getSync } from "../services/drive/instance";
@@ -24,6 +24,7 @@ const docRef = z.discriminatedUnion("kind", [
 ]);
 
 async function remember(path: string): Promise<void> {
+  if (inGrantedFolder(path)) return; // notes opened from a folder window belong to that folder, not "recent files"
   const store = getAppStore();
   await store.set({ recent: addRecent(store.get().recent, path) });
 }

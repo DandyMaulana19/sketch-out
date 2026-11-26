@@ -54,6 +54,11 @@ export function assertGranted(p: string): string {
   throw new Error("Path not permitted");
 }
 
+/** True when `p` lies inside a folder the user opened (such files stay out of "recent files"). */
+export function inGrantedFolder(p: string): boolean {
+  return folderOf(resolve(p), false) !== null;
+}
+
 /** A granted folder or one of its subfolders. */
 export function assertGrantedDir(d: string): string {
   const abs = resolve(d);

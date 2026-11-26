@@ -9,6 +9,9 @@ export interface AppState {
   langCode: string;
   driveFolderId: string | null;
   driveListCache: DriveFileInfo[];
+  recentFolders: string[];
+  /** Per opened folder: open tabs and the active one, as paths relative to the folder. */
+  folderTabs: Record<string, { open: string[]; active: string | null }>;
 }
 
 let appStore: JsonStore<AppState> | null = null;
@@ -21,6 +24,8 @@ export function getAppStore(): JsonStore<AppState> {
     langCode: "id-ID",
     driveFolderId: null,
     driveListCache: [],
+    recentFolders: [],
+    folderTabs: {},
   });
   return appStore;
 }
