@@ -14,8 +14,8 @@ mac:
   target:
     - target: dmg
       arch: [arm64, x64]
-  hardenedRuntime: true
-  identity: null
+  hardenedRuntime: false
+  identity: "-"
 dmg:
   artifactName: ${productName}-${version}-${arch}.${ext}
 win:
