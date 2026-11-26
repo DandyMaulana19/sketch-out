@@ -17,6 +17,8 @@ import { DriveDialog } from "./components/DriveDialog";
 import { ConflictNotice } from "./components/ConflictNotice";
 import { NameDialog } from "./components/NameDialog";
 import { CloudIcon, UserIcon } from "./components/icons";
+import { registerDocHandler } from "./ai/aiHost";
+import { runCanvasOp } from "./ai/canvasOps";
 
 const api = window.sketchOut;
 const errText = (e: unknown) => String((e as Error)?.message ?? e).split(": ").pop() ?? "Terjadi kesalahan";
@@ -319,6 +321,12 @@ export function DocView({ doc, env, account, setAccount, onReplace, handle, onSt
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, [overlay, doc.kind]);
+
+  // MCP tool calls for the note this view shows.
+  useEffect(() => {
+    if (!excalidrawAPI || !path) return;
+    return registerDocHandler(path, (op, args) => runCanvasOp(excalidrawAPI, op, args));
+  }, [excalidrawAPI, path]);
 
   useEffect(() => {
     // Test hook: only present when the app was launched by the e2e suite.

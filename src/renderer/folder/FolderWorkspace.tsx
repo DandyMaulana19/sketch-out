@@ -10,6 +10,7 @@ import { folderName } from "../components/AppMainMenu";
 import { Modal } from "../components/Modal";
 import { NameDialog } from "../components/NameDialog";
 import { Sidebar, type SidebarTarget } from "./Sidebar";
+import { setFolderOpener } from "../ai/aiHost";
 import { buildTree, tabLabels, tabsReducer, type TabsAction, type TabsState } from "./tabs";
 
 const api = window.sketchOut;
@@ -84,8 +85,8 @@ export function FolderWorkspace({ folder, env }: { folder: string; env: Env }) {
 
   /** Apply a tab change; the open note is saved first and the switch is refused if that fails. */
   const go = useCallback(
-    async (action: TabsAction, opts: { skipFlush?: boolean } = {}) => {
-      if (busy.current) return;
+    async (action: TabsAction, opts: { skipFlush?: boolean } = {}): Promise<boolean> => {
+      if (busy.current) return false;
       busy.current = true;
       try {
         const prev = tabsRef.current;
@@ -93,7 +94,7 @@ export function FolderWorkspace({ folder, env }: { folder: string; env: Env }) {
         if (next.active !== prev.active && handle.current && !opts.skipFlush) {
           if (!(await handle.current.flush())) {
             showToast("Gagal menyimpan — tab tidak dipindah");
-            return;
+            return false;
           }
         }
         while (next.active && next.active !== prev.active && !(await load(next.active))) next = tabsReducer(next, { type: "close", path: next.active });
@@ -102,6 +103,7 @@ export function FolderWorkspace({ folder, env }: { folder: string; env: Env }) {
           setCurrent(null);
         }
         commitTabs(next);
+        return true;
       } finally {
         busy.current = false;
       }
@@ -140,6 +142,17 @@ export function FolderWorkspace({ folder, env }: { folder: string; env: Env }) {
   }, []);
 
   useEffect(() => api.on("folder:changed", () => void refresh()), [refresh]);
+
+  // AI (MCP) asks for a note of this folder: bring it up as the active tab.
+  useEffect(
+    () =>
+      setFolderOpener(async (path) => {
+        for (let i = 0; i < 20 && busy.current; i++) await new Promise((r) => setTimeout(r, 100));
+        if (tabsRef.current.active === path) return;
+        if (!(await go({ type: "open", path }))) throw new Error("Catatan lain belum tersimpan, jadi tidak bisa pindah ke catatan ini");
+      }),
+    [go],
+  );
 
   // Window title and close state when no note is open.
   useEffect(() => {

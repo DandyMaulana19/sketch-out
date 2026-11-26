@@ -133,7 +133,7 @@ export function registerTools(server: McpServer, d: ToolDeps): void {
       description:
         "Add Excalidraw elements to a note (shown live, one undo step). Use element skeletons: " +
         '{type:"rectangle"|"ellipse"|"diamond"|"text"|"arrow"|"line"|"frame", x, y, width, height, id?, label:{text}, text (for type text), ' +
-        "strokeColor, backgroundColor, fillStyle, start/end:{id} to bind arrows to element ids}. " +
+        "strokeColor, backgroundColor, fillStyle, start/end:{id} to bind an arrow to an element given in the same call}. " +
         "Elements without x/y are placed below the existing content. Returns the new element ids.",
       inputSchema: { path, elements: z.array(skeleton).min(1).max(MAX_BATCH) },
     },

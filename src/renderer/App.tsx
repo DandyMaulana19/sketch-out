@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import type { Prefs } from "../preload/api";
 import { Editor } from "./Editor";
 import { FolderWorkspace } from "./folder/FolderWorkspace";
+import { installAiHost } from "./ai/aiHost";
 import type { Doc } from "./doc/types";
 
 const api = window.sketchOut;
+installAiHost();
 
 export interface Account {
   signedIn: boolean;
