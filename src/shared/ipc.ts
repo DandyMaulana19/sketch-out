@@ -1,5 +1,20 @@
 /** Every invoke channel the renderer may call, as "<namespace>:<method>". */
-export const CHANNELS = [] as const satisfies readonly string[];
+export const CHANNELS = [
+  "files:openDialog",
+  "files:read",
+  "files:write",
+  "files:saveAsDialog",
+  "files:statMtime",
+  "files:recent",
+  "files:writeRecovery",
+  "files:readRecovery",
+  "files:clearRecovery",
+  "app:getInitialDoc",
+  "app:setDocState",
+  "app:openDocument",
+  "app:newWindow",
+  "app:closeWindow",
+] as const satisfies readonly string[];
 export type Channel = (typeof CHANNELS)[number];
 
 /** Events main → renderer. */
