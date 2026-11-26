@@ -6,33 +6,83 @@ Whiteboard desktop berbasis editor Excalidraw resmi (`@excalidraw/excalidraw`, M
 - **Mode folder**: buka satu folder (**File › Buka folder…**, `⌘⇧O`) untuk melihat semua catatan `.excalidraw` di dalamnya, termasuk di subfolder, dalam sidebar berbentuk pohon. Catatan yang dibuka muncul sebagai tab (`Ctrl+Tab` untuk pindah, `⌘W` untuk menutup tab). Sebelum pindah tab, perubahan disimpan dulu. Tab yang terbuka diingat per folder. Subfolder yang tidak berisi catatan tidak ditampilkan. Folder tersembunyi dan `node_modules` dilewati.
 - **Google Drive**: setiap perubahan langsung disimpan dulu ke cache di perangkat. Saat online, perubahan diunggah ke folder `Sketch Out` di Drive. Saat offline, perubahan menunggu di cache dan diunggah otomatis begitu online lagi. Kalau file di Drive diubah dari tempat lain, versimu disimpan sebagai salinan `… (konflik YYYY-MM-DD HH.mm)`, jadi tidak ada yang tertimpa.
 
-## Menjalankan
+## Clone dan build sendiri (macOS Apple Silicon)
 
-```bash
-npm install
-```
+### Yang perlu disiapkan
+- Mac dengan chip Apple Silicon (M1 atau lebih baru)
+- [Node.js](https://nodejs.org/) 22 atau lebih baru (sudah termasuk npm). Cek dengan `node -v`.
+- Git. Cek dengan `git --version`; kalau belum ada, macOS akan menawarkan untuk memasangnya.
+- Ruang disk kosong sekitar 2 GB untuk dependensi dan proses build.
+
+### Langkah
+1. Clone repo, lalu masuk ke foldernya:
+
+   ```bash
+   git clone https://github.com/<username>/sketch-out.git
+   ```
+
+   ```bash
+   cd sketch-out
+   ```
+
+2. Pasang dependensi:
+
+   ```bash
+   npm install
+   ```
+
+3. (Opsional) Kalau ingin fitur Google Drive, buat `.env` dulu. Lihat [Menghubungkan Google Drive](#menghubungkan-google-drive). Tanpa `.env`, app tetap jalan penuh untuk file lokal, mode folder, dan AI. Hanya login Google yang tidak tersedia.
+
+4. Build installer:
+
+   ```bash
+   npm run dist
+   ```
+
+   Hasilnya `dist/Sketch Out-<versi>-arm64.dmg` (sekitar 93 MB).
+
+5. Pasang: buka file `.dmg`, lalu seret **Sketch Out** ke folder **Applications**. Installer ini belum ditandatangani Apple, jadi saat pertama kali dibuka: klik kanan **Sketch Out** di Applications, pilih **Open**, lalu **Open** lagi. Cukup sekali.
+
+**Mac Intel:** ganti `arch: [arm64]` menjadi `arch: [x64]` di `electron-builder.yml`, lalu jalankan `npm run dist`. Hasilnya `…-x64.dmg`. Versi ini belum dites secara rutin.
+
+### Catatan build
+- Semua dependensi app dibundel oleh Vite, jadi `node_modules` tidak ikut dikemas.
+- DMG dikompres ulang dengan LZMA oleh `scripts/compress-dmg.cjs`.
+- Font tulisan tangan CJK (Xiaolai, 12 MB) sengaja tidak disertakan, sehingga teks Mandarin/Jepang/Korea memakai font sistem.
+- Mengganti logo: ubah `resources/icon.svg`, lalu render ulang PNG-nya (butuh Xcode Command Line Tools):
+
+  ```bash
+  swift scripts/render-icon.swift resources/icon.svg resources/icon.png
+  ```
+
+### Windows
+**Belum didukung.** Kodenya mayoritas sudah lintas platform (Electron + React + Excalidraw), tapi beberapa bagian masih khusus macOS:
+- MCP memakai socket Unix (Windows butuh named pipe);
+- jendela "Hubungkan ke AI" memakai path pengaturan `~/Library/...` dan shell `zsh`;
+- mode folder menggabungkan path dengan `/`;
+- `npm run dist` hanya membuat installer Mac.
+
+Versi Windows direncanakan di branch `windows`. Membuat installer Windows sebaiknya dilakukan di mesin Windows; dari Mac butuh Wine.
+
+## Mengembangkan
+
+Menjalankan app dalam mode pengembangan (reload otomatis):
 
 ```bash
 npm run dev
 ```
 
-## Test
+Unit test:
 
 ```bash
 npm test
 ```
 
+Test end-to-end (membuka app sungguhan):
+
 ```bash
 npm run build && npm run test:e2e
 ```
-
-## Membuat installer macOS
-
-```bash
-npm run dist
-```
-
-Hasilnya ada di `dist/Sketch Out-<versi>-arm64.dmg` (khusus Apple Silicon, sekitar 93 MB, dikompres ulang dengan LZMA oleh `scripts/compress-dmg.cjs`). Proses ini butuh sekitar 1 GB ruang disk kosong. Semua dependensi app dibundel oleh Vite, jadi `node_modules` tidak ikut dikemas. Font tulisan tangan CJK (Xiaolai, 12 MB) sengaja tidak disertakan, sehingga teks Mandarin/Jepang/Korea memakai font sistem. Installer belum ditandatangani (code signing), jadi saat pertama kali dibuka: klik kanan aplikasinya, lalu pilih **Open**.
 
 ## Menghubungkan Google Drive
 
