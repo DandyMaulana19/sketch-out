@@ -4,6 +4,7 @@ import { app, BrowserWindow, dialog, type WebContents } from "electron";
 import type { DocRef } from "@shared/types";
 import type { DocState, InitialDoc, MenuCommand } from "../preload/api";
 import { installNavigationGuards, secureWebPreferences } from "./security";
+import { WindowRegistry } from "./windowRegistry";
 
 interface WinInfo {
   initial: InitialDoc;
@@ -101,4 +102,15 @@ function handleClose(win: BrowserWindow, e: Electron.Event): void {
     // Never trap the user: close anyway if the renderer does not answer.
     setTimeout(() => !win.isDestroyed() && forceClose(win), 5000);
   }
+}
+
+export const registry = new WindowRegistry<BrowserWindow>((doc) => createDocumentWindow(doc));
+
+/** Focus the window already showing `doc`, or open a new one. */
+export function openDocument(doc: DocRef): BrowserWindow {
+  return registry.openDocument(doc);
+}
+
+export function broadcast(channel: string, payload: unknown): void {
+  for (const w of BrowserWindow.getAllWindows()) if (!w.isDestroyed()) w.webContents.send(channel, payload);
 }

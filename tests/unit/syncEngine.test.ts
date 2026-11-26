@@ -240,4 +240,27 @@ describe("SyncEngine", () => {
     engine.dismissNotice(meta.localId);
     expect(engine.getState(meta.localId).notice).toBeNull();
   });
+
+  it("noteRenamed updates name and baseVersion so a rename is not mistaken for a conflict", async () => {
+    const { drive, engine } = await setup();
+    const meta = await engine.createDriveDoc("Old", "{0}");
+    await settle();
+    const fileId = (await engine.getMeta(meta.localId)).fileId!;
+    const info = await drive.rename(fileId, "New");
+    await engine.noteRenamed(fileId, info);
+    expect((await engine.getMeta(meta.localId)).name).toBe("New");
+    await engine.saveLocal(meta.localId, "{1}");
+    await vi.advanceTimersByTimeAsync(2000);
+    await settle();
+    expect(engine.getState(meta.localId).notice).toBeNull();
+    expect(drive.files.get(fileId)!.json).toBe("{1}");
+  });
+
+  it("exposes dirty documents and cached content", async () => {
+    const { engine } = await setup({ online: false });
+    const meta = await engine.createDriveDoc("P", "{p}");
+    expect((await engine.listDirty()).map((m) => m.localId)).toEqual([meta.localId]);
+    expect(await engine.readCachedDoc(meta.localId)).toBe("{p}");
+  });
 });
+

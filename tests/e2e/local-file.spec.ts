@@ -58,3 +58,14 @@ test("choosing 'Jangan simpan' on close discards the untitled drawing", async ()
   expect(await sceneTypes(page)).toEqual([]);
   await app.close();
 });
+
+test("an empty canvas leaves nothing to restore and shows no pending save", async () => {
+  const userData = newUserData();
+  let { app, page } = await launch(userData);
+  await page.waitForTimeout(1500);
+  await expect(page.locator(".so-badge")).toContainText("Belum disimpan ke file");
+  await app.close();
+  ({ app, page } = await launch(userData));
+  expect(app.windows()).toHaveLength(1);
+  await app.close();
+});

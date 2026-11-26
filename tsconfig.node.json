@@ -16,7 +16,8 @@
       "@shared/*": [
         "./src/shared/*"
       ]
-    }
+    },
+    "jsx": "react-jsx"
   },
   "include": [
     "electron.vite.config.ts",

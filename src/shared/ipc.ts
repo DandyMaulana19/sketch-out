@@ -21,6 +21,19 @@ export const CHANNELS = [
   "auth:signIn",
   "auth:signOut",
   "auth:status",
+  "drive:list",
+  "drive:open",
+  "drive:openInWindow",
+  "drive:readCached",
+  "drive:create",
+  "drive:rename",
+  "drive:trash",
+  "sync:save",
+  "sync:syncNow",
+  "sync:getState",
+  "sync:dismissNotice",
+  "sync:reportOnline",
+  "sync:pendingCount",
 ] as const satisfies readonly string[];
 export type Channel = (typeof CHANNELS)[number];
 

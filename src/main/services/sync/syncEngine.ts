@@ -49,6 +49,20 @@ export class SyncEngine extends EventEmitter {
     return this.deps.cache.getMeta(localId);
   }
 
+  listDirty(): Promise<CacheMeta[]> {
+    return this.deps.cache.listDirty();
+  }
+
+  readCachedDoc(localId: string): Promise<string> {
+    return this.deps.cache.readDoc(localId);
+  }
+
+  /** A rename bumps the Drive version; record it so the next upload is not treated as a conflict. */
+  async noteRenamed(fileId: string, info: DriveFileInfo): Promise<void> {
+    const m = await this.deps.cache.findByFileId(fileId);
+    if (m) await this.deps.cache.updateMeta(m.localId, { name: info.name, baseVersion: info.version });
+  }
+
   isOnline(): boolean {
     return this.online;
   }

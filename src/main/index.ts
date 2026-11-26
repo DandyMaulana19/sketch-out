@@ -1,11 +1,15 @@
 import { join } from "node:path";
-import { app, BrowserWindow, session } from "electron";
-import { createDocumentWindow, setRecoveryDiscarder } from "./windows";
+import { app, BrowserWindow, net, session } from "electron";
+import { broadcast, createDocumentWindow, setRecoveryDiscarder } from "./windows";
 import { CSP } from "./security";
 import { installMenu } from "./menu";
 import { registerAppHandlers, registerAuthHandlers, registerFileHandlers } from "./ipc/handlers";
 import { RecoveryStore } from "./services/recovery";
 import { handleProtocolUrl } from "./library";
+import { registerDriveHandlers } from "./ipc/driveHandlers";
+import { getSync } from "./services/drive/instance";
+import { createConnectivity } from "./services/connectivity";
+import { getAuth } from "./services/auth/instance";
 
 if (process.env.SKETCHOUT_USER_DATA) app.setPath("userData", process.env.SKETCHOUT_USER_DATA);
 app.enableSandbox();
@@ -46,6 +50,12 @@ app.whenReady().then(async () => {
   registerFileHandlers(recovery);
   registerAppHandlers();
   registerAuthHandlers();
+
+  const sync = getSync();
+  sync.on("state", (st) => broadcast("sync:state", st));
+  const connectivity = createConnectivity({ isOnline: () => net.isOnline(), onChange: (o) => sync.setOnline(o) });
+  registerDriveHandlers(connectivity);
+  if ((await getAuth().status()).signedIn) void sync.syncAllDirty();
   installMenu();
 
   const leftovers = (await recovery.list()).slice(0, MAX_RECOVERED_WINDOWS);
@@ -55,6 +65,16 @@ app.whenReady().then(async () => {
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createDocumentWindow(null);
   });
+});
+
+// Give pending Drive uploads a last chance (max 5 s); anything left stays in the cache for next launch.
+let flushedBeforeQuit = false;
+app.on("will-quit", (e) => {
+  if (flushedBeforeQuit) return;
+  flushedBeforeQuit = true;
+  e.preventDefault();
+  const sync = getSync();
+  void Promise.race([sync.syncAllDirty().then(() => sync.whenIdle()), new Promise((r) => setTimeout(r, 5000))]).finally(() => app.quit());
 });
 
 app.on("window-all-closed", () => {

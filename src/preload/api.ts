@@ -1,12 +1,19 @@
 import type { AppEvent } from "../shared/ipc";
-import type { DocRef } from "../shared/types";
+import type { DocRef, DriveFileInfo, SyncState } from "../shared/types";
 
 export interface InitialDoc {
   doc: DocRef | null;
   recoveryId: string | null;
   recovered: boolean;
 }
+export interface DriveDocData {
+  localId: string;
+  fileId: string | null;
+  name: string;
+  json: string;
+}
 export interface DocState {
+  doc?: DocRef;
   title: string;
   edited: boolean;
   untitled: boolean;
@@ -47,6 +54,23 @@ export interface SketchOutApi {
     signIn(): Promise<{ email: string | null }>;
     signOut(): Promise<void>;
     status(): Promise<{ signedIn: boolean; email: string | null }>;
+  };
+  drive: {
+    list(): Promise<{ files: DriveFileInfo[]; offline: boolean }>;
+    open(i: { fileId: string }): Promise<DriveDocData>;
+    openInWindow(i: { fileId: string }): Promise<void>;
+    readCached(i: { localId: string }): Promise<DriveDocData>;
+    create(i: { name: string; json: string }): Promise<DriveDocData>;
+    rename(i: { localId?: string; fileId: string; name: string }): Promise<DriveFileInfo>;
+    trash(i: { fileId: string }): Promise<void>;
+  };
+  sync: {
+    save(i: { localId: string; json: string }): Promise<void>;
+    syncNow(i: { localId: string }): Promise<SyncState>;
+    getState(i: { localId: string }): Promise<SyncState>;
+    dismissNotice(i: { localId: string }): Promise<void>;
+    reportOnline(i: { online: boolean }): Promise<void>;
+    pendingCount(): Promise<number>;
   };
   on(event: AppEvent, cb: (payload: unknown) => void): () => void;
 }

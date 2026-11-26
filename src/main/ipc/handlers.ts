@@ -7,7 +7,8 @@ import { getAppStore, getLibraryStore } from "../services/appStores";
 import { addRecent } from "../services/store";
 import { assertGranted, grantPath } from "../services/grants";
 import { RECOVERY_ID, type RecoveryStore } from "../services/recovery";
-import { createDocumentWindow, forceClose, infoFor } from "../windows";
+import { createDocumentWindow, forceClose, infoFor, openDocument, registry } from "../windows";
+import { forgetFolder, getSync } from "../services/drive/instance";
 import { getAuth } from "../services/auth/instance";
 
 const FILTERS = [{ name: "Excalidraw", extensions: ["excalidraw"] }];
@@ -71,11 +72,16 @@ export function registerAppHandlers(): void {
 
   handle(
     "app:setDocState",
-    z.object({ title: z.string().max(300), edited: z.boolean(), untitled: z.boolean(), nonEmpty: z.boolean(), recoveryId: recoveryId.nullable() }),
+    z.object({ doc: docRef.optional(), title: z.string().max(300), edited: z.boolean(), untitled: z.boolean(), nonEmpty: z.boolean(), recoveryId: recoveryId.nullable() }),
     (state, e) => {
       const info = infoFor(e.sender);
       info.state = state;
       const win = winOf(e);
+      if (state.doc) {
+        if (state.doc.kind === "local" && state.doc.path) assertGranted(state.doc.path);
+        info.initial = { ...info.initial, doc: state.doc };
+        registry.rekey(win, state.doc);
+      }
       win.setTitle(state.title);
       win.setDocumentEdited(state.edited || (state.untitled && state.nonEmpty));
     },
@@ -83,7 +89,7 @@ export function registerAppHandlers(): void {
 
   handle("app:openDocument", z.object({ doc: docRef }), ({ doc }) => {
     if (doc.kind === "local" && doc.path) assertGranted(doc.path);
-    createDocumentWindow(doc);
+    openDocument(doc);
   });
   handle("app:newWindow", z.undefined(), () => void createDocumentWindow(null));
   handle("app:closeWindow", z.undefined(), (_i, e) => forceClose(winOf(e)));
@@ -102,7 +108,14 @@ export function registerAppHandlers(): void {
 export const titleFromPath = (p: string) => basename(p, extname(p));
 
 export function registerAuthHandlers(): void {
-  handle("auth:signIn", z.undefined(), () => getAuth().signIn());
-  handle("auth:signOut", z.undefined(), () => getAuth().signOut());
+  handle("auth:signIn", z.undefined(), async () => {
+    const r = await getAuth().signIn();
+    void getSync().onSignedIn();
+    return r;
+  });
+  handle("auth:signOut", z.undefined(), async () => {
+    await getAuth().signOut();
+    await forgetFolder();
+  });
   handle("auth:status", z.undefined(), () => getAuth().status());
 }
