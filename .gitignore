@@ -1,0 +1,8 @@
+node_modules
+out
+dist
+.env
+.superpowers
+*.log
+test-results
+playwright-report
