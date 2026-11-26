@@ -1,5 +1,5 @@
 import { statSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { app, BrowserWindow, net, session } from "electron";
 import { broadcast, createDocumentWindow, openDocument, setRecoveryDiscarder } from "./windows";
 import { grantPath } from "./services/grants";
@@ -36,7 +36,9 @@ const isDir = (p: string) => {
     return false;
   }
 };
-const folderArgs = (argv: string[]) => argv.slice(process.defaultApp ? 2 : 1).filter((a) => !a.startsWith("-") && isDir(a));
+// In development the app's own directory is on the command line too; it is not a folder to open.
+const folderArgs = (argv: string[]) =>
+  argv.slice(1).filter((a) => !a.startsWith("-") && resolve(a) !== app.getAppPath() && isDir(a));
 let ready = false;
 const pendingFiles: string[] = [];
 const pendingFolders: string[] = [];

@@ -3,6 +3,7 @@
 Whiteboard desktop berbasis editor Excalidraw resmi (`@excalidraw/excalidraw`, MIT). File bisa disimpan di perangkat atau di Google Drive, dan mode Drive tetap bisa dipakai tanpa internet.
 
 - **Lokal**: buka/simpan file `.excalidraw` biasa, simpan otomatis 1 detik setelah perubahan terakhir. Gambar tanpa judul dipulihkan otomatis setelah crash.
+- **Mode folder**: buka satu folder (**File › Buka folder…**, `⌘⇧O`) untuk melihat semua catatan `.excalidraw` di dalamnya, termasuk di subfolder, dalam sidebar berbentuk pohon. Catatan yang dibuka muncul sebagai tab (`Ctrl+Tab` untuk pindah, `⌘W` untuk menutup tab). Sebelum pindah tab, perubahan disimpan dulu. Tab yang terbuka diingat per folder. Subfolder yang tidak berisi catatan tidak ditampilkan. Folder tersembunyi dan `node_modules` dilewati.
 - **Google Drive**: setiap perubahan langsung disimpan dulu ke cache di perangkat. Saat online, perubahan diunggah ke folder `Sketch Out` di Drive. Saat offline, perubahan menunggu di cache dan diunggah otomatis begitu online lagi. Kalau file di Drive diubah dari tempat lain, versimu disimpan sebagai salinan `… (konflik YYYY-MM-DD HH.mm)`, jadi tidak ada yang tertimpa.
 
 ## Menjalankan
@@ -31,7 +32,7 @@ npm run build && npm run test:e2e
 npm run dist
 ```
 
-Hasilnya ada di `dist/Sketch Out-<versi>-arm64.dmg` dan `-x64.dmg`. Proses ini butuh sekitar 1 GB ruang disk kosong. Installer belum ditandatangani (code signing), jadi saat pertama kali dibuka: klik kanan aplikasinya, lalu pilih **Open**.
+Hasilnya ada di `dist/Sketch Out-<versi>-arm64.dmg` (khusus Apple Silicon, sekitar 93 MB, dikompres ulang dengan LZMA oleh `scripts/compress-dmg.cjs`). Proses ini butuh sekitar 1 GB ruang disk kosong. Semua dependensi app dibundel oleh Vite, jadi `node_modules` tidak ikut dikemas. Font tulisan tangan CJK (Xiaolai, 12 MB) sengaja tidak disertakan, sehingga teks Mandarin/Jepang/Korea memakai font sistem. Installer belum ditandatangani (code signing), jadi saat pertama kali dibuka: klik kanan aplikasinya, lalu pilih **Open**.
 
 ## Menghubungkan Google Drive
 
