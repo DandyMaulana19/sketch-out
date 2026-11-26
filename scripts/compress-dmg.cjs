@@ -1,5 +1,6 @@
 // electron-builder only offers zlib/bzip2 DMGs. Re-pack each DMG with LZMA (ULMO, macOS 10.15+),
 // which is ~15% smaller. The blockmap is only for auto-update, which this app doesn't use.
+// Other artifacts (the Windows NSIS .exe, AppImage) pass through untouched; only their blockmaps are dropped.
 const { execFileSync } = require("node:child_process");
 const { renameSync, rmSync } = require("node:fs");
 

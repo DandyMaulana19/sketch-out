@@ -1,6 +1,10 @@
 import { MainMenu, languages } from "@excalidraw/excalidraw";
 import type { ReactNode } from "react";
 import { ClockIcon, FilePlusIcon, FolderIcon, FolderOpenIcon, SaveIcon, SparkIcon } from "./icons";
+import { shortcutLabel } from "../../shared/paths";
+
+const IS_MAC = /Mac/i.test(navigator.platform);
+export const sc = (keys: string) => shortcutLabel(keys, IS_MAC);
 
 export interface FileActions {
   newDoc(): void;
@@ -27,10 +31,10 @@ interface Props {
 export function AppMainMenu({ actions, recent, recentFolders, extra, langCode, onLangChange }: Props) {
   return (
     <MainMenu>
-      <MainMenu.Item icon={FilePlusIcon} onSelect={actions.newDoc} shortcut="⌘N">Baru</MainMenu.Item>
-      <MainMenu.Item icon={FolderOpenIcon} onSelect={actions.openLocal} shortcut="⌘O">Buka file lokal…</MainMenu.Item>
-      <MainMenu.Item icon={FolderIcon} onSelect={actions.openFolder} shortcut="⌘⇧O">Buka folder…</MainMenu.Item>
-      <MainMenu.Item icon={SaveIcon} onSelect={actions.saveAs} shortcut="⌘⇧S">Simpan sebagai…</MainMenu.Item>
+      <MainMenu.Item icon={FilePlusIcon} onSelect={actions.newDoc} shortcut={sc("Mod+N")}>Baru</MainMenu.Item>
+      <MainMenu.Item icon={FolderOpenIcon} onSelect={actions.openLocal} shortcut={sc("Mod+O")}>Buka file lokal…</MainMenu.Item>
+      <MainMenu.Item icon={FolderIcon} onSelect={actions.openFolder} shortcut={sc("Mod+Shift+O")}>Buka folder…</MainMenu.Item>
+      <MainMenu.Item icon={SaveIcon} onSelect={actions.saveAs} shortcut={sc("Mod+Shift+S")}>Simpan sebagai…</MainMenu.Item>
       {extra}
       <MainMenu.Item icon={SparkIcon} onSelect={actions.connectAi}>Hubungkan ke AI…</MainMenu.Item>
       {recent.length > 0 && (

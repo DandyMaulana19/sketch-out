@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { app, BrowserWindow, dialog, type WebContents } from "electron";
 import type { DocRef } from "@shared/types";
+import { isInside, pathKey } from "@shared/paths";
 import type { DocState, InitialDoc, MenuCommand } from "../preload/api";
 import { installNavigationGuards, secureWebPreferences } from "./security";
 import { WindowRegistry } from "./windowRegistry";
@@ -127,23 +128,21 @@ export function isFolderWindow(win: BrowserWindow): boolean {
 
 /** Focus the window already showing folder `dir`, or open one (watching the folder for changes). */
 export function openFolderWindow(dir: string): BrowserWindow {
-  const existing = folderWindows.get(dir);
+  const existing = folderWindows.get(pathKey(dir));
   if (existing && !existing.isDestroyed()) {
     if (existing.isMinimized()) existing.restore();
     existing.focus();
     return existing;
   }
   const win = createDocumentWindow(null, { folder: dir });
-  folderWindows.set(dir, win);
+  folderWindows.set(pathKey(dir), win);
   const stop = watchFolder(dir, () => !win.isDestroyed() && win.webContents.send("folder:changed", { dir }));
   win.once("closed", () => {
     stop();
-    if (folderWindows.get(dir) === win) folderWindows.delete(dir);
+    if (folderWindows.get(pathKey(dir)) === win) folderWindows.delete(pathKey(dir));
   });
   return win;
 }
-
-const isInside = (p: string, dir: string) => p.startsWith(dir.endsWith("/") ? dir : `${dir}/`);
 
 /** The open folder window whose folder contains `path` (the deepest one wins). */
 export function findFolderWindowFor(path: string): BrowserWindow | null {

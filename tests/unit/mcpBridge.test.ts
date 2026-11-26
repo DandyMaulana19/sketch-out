@@ -4,7 +4,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PassThrough } from "node:stream";
-import { socketPath } from "../../src/main/mcp/socketPath";
+import { isNamedPipe, socketPath } from "../../src/main/mcp/socketPath";
 import { runBridge } from "../../src/main/mcp/bridge";
 import { LineTransport } from "../../src/main/mcp/lineTransport";
 
@@ -39,6 +39,16 @@ describe("socketPath", () => {
     expect(p.endsWith(".sock")).toBe(true);
     expect(p.length).toBeLessThanOrEqual(100);
     expect(socketPath(long, "/tmp")).toBe(p);
+  });
+
+  it("uses a named pipe on Windows, stable per userData and case-insensitive", () => {
+    const ud = "C:\\Users\\Ana\\AppData\\Roaming\\Sketch Out";
+    const p = socketPath(ud, "C:\\Temp", "win32");
+    expect(p).toMatch(/^\\\\\.\\pipe\\sketch-out-[0-9a-f]{12}$/);
+    expect(socketPath(ud.toUpperCase(), "C:\\Temp", "win32")).toBe(p);
+    expect(socketPath("C:\\Users\\Budi\\AppData\\Roaming\\Sketch Out", "C:\\Temp", "win32")).not.toBe(p);
+    expect(isNamedPipe(p)).toBe(true);
+    expect(isNamedPipe(socketPath("/short", "/tmp", "darwin"))).toBe(false);
   });
 });
 

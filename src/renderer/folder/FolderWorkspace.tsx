@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import type { NoteInfo } from "../../shared/types";
+import { joinRel, relTo } from "../../shared/paths";
 import type { MenuCommand } from "../../preload/api";
 import type { Account, Env } from "../App";
 import { DocView, type DocHandle } from "../Editor";
@@ -56,8 +57,8 @@ export function FolderWorkspace({ folder, env }: { folder: string; env: Env }) {
     setTimeout(() => setToast((t) => (t === m ? null : t)), 6000);
   }, []);
 
-  const relOf = useCallback((p: string) => (p.startsWith(folder + "/") || p.startsWith(folder + "\\") ? p.slice(folder.length + 1) : p), [folder]);
-  const absOf = useCallback((rel: string) => `${folder}/${rel}`, [folder]);
+  const relOf = useCallback((p: string) => relTo(folder, p) ?? p, [folder]);
+  const absOf = useCallback((rel: string) => joinRel(folder, rel), [folder]);
 
   const commitTabs = useCallback(
     (next: TabsState) => {

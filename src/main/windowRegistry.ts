@@ -1,7 +1,8 @@
 import type { DocRef } from "@shared/types";
+import { pathKey } from "@shared/paths";
 
 export function docKey(doc: DocRef): string | null {
-  if (doc.kind === "local") return doc.path ? `local:${doc.path}` : null;
+  if (doc.kind === "local") return doc.path ? `local:${pathKey(doc.path)}` : null;
   return `drive:${doc.localId}`;
 }
 

@@ -1,7 +1,7 @@
 import { WelcomeScreen } from "@excalidraw/excalidraw";
 import type { ReactNode } from "react";
 import { ClockIcon, FolderIcon, FolderOpenIcon } from "./icons";
-import { fileName, folderName, type FileActions } from "./AppMainMenu";
+import { fileName, folderName, sc, type FileActions } from "./AppMainMenu";
 
 export function AppWelcomeScreen({ actions, recent, recentFolders, extra }: { actions: FileActions; recent: string[]; recentFolders: string[]; extra?: ReactNode }) {
   return (
@@ -15,10 +15,10 @@ export function AppWelcomeScreen({ actions, recent, recentFolders, extra }: { ac
         </WelcomeScreen.Center.Logo>
         <WelcomeScreen.Center.Heading>Gambarmu tersimpan di perangkat ini atau di Google Drive.</WelcomeScreen.Center.Heading>
         <WelcomeScreen.Center.Menu>
-          <WelcomeScreen.Center.MenuItem onSelect={actions.openLocal} shortcut="⌘O" icon={FolderOpenIcon}>
+          <WelcomeScreen.Center.MenuItem onSelect={actions.openLocal} shortcut={sc("Mod+O")} icon={FolderOpenIcon}>
             Buka file lokal…
           </WelcomeScreen.Center.MenuItem>
-          <WelcomeScreen.Center.MenuItem onSelect={actions.openFolder} shortcut="⌘⇧O" icon={FolderIcon}>
+          <WelcomeScreen.Center.MenuItem onSelect={actions.openFolder} shortcut={sc("Mod+Shift+O")} icon={FolderIcon}>
             Buka folder…
           </WelcomeScreen.Center.MenuItem>
           {extra}

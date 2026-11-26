@@ -1,5 +1,5 @@
 import { stat } from "node:fs/promises";
-import { relative, resolve, sep } from "node:path";
+import { isAbsolute, relative, resolve, sep } from "node:path";
 import { BrowserWindow, dialog, shell } from "electron";
 import { z } from "zod";
 import { handle } from "./register";
@@ -40,7 +40,7 @@ const assertRoot = (dir: string): string => assertGrantedDir(resolve(dir));
 
 const insideRoot = (root: string, rel: string) => {
   const r = relative(root, resolve(root, rel));
-  return r !== "" && !r.startsWith("..");
+  return r !== "" && !r.startsWith("..") && !isAbsolute(r); // on Windows another drive yields an absolute path
 };
 
 export function registerFolderHandlers(): void {

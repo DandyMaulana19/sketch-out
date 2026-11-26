@@ -1,6 +1,7 @@
 import { copyFile, mkdir, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { atomicWriteFile } from "../services/atomicWrite";
+import { cmdQuote, posixQuote } from "./shell";
 
 /** Registers Sketch Out's MCP server with AI clients. Pure Node: the Electron-specific bits live in ipc/aiHandlers.ts. */
 export type ClientId = "claude-code" | "codex" | "claude-desktop" | "opencode" | "gemini" | "cursor" | "vscode";
@@ -11,6 +12,9 @@ export interface McpCommand {
 }
 export interface ClientEnv {
   home: string;
+  platform: NodeJS.Platform;
+  /** Windows `%APPDATA%` (roaming); defaults to `<home>\\AppData\\Roaming`. */
+  appData?: string;
   /** Runs a CLI through the user's login shell (GUI apps don't inherit the terminal PATH). */
   exec(bin: string, args: string[]): Promise<{ code: number; stdout: string }>;
   which(bin: string): Promise<boolean>;
@@ -72,14 +76,14 @@ export async function editJsonConfig(file: string, keys: string[], value: unknow
   await atomicWriteFile(file, JSON.stringify(data, null, 2) + "\n");
 }
 
-function jsonClient(o: { label: string; restartNote?: string; dir: (home: string) => string; file: string; keys: string[]; entry: (c: McpCommand) => unknown }): Client {
-  const path = (home: string) => join(o.dir(home), o.file);
+function jsonClient(o: { label: string; restartNote?: string; dir: (env: ClientEnv) => string; file: string; keys: string[]; entry: (c: McpCommand) => unknown }): Client {
+  const path = (env: ClientEnv) => join(o.dir(env), o.file);
   return {
     label: o.label,
     restartNote: o.restartNote,
     async status(env, cmd) {
-      const file = path(env.home);
-      if (!(await env.exists(o.dir(env.home))) && !(await env.exists(file))) return "missing";
+      const file = path(env);
+      if (!(await env.exists(o.dir(env))) && !(await env.exists(file))) return "missing";
       let data: Record<string, unknown> | null;
       try {
         data = await readJson(file);
@@ -91,9 +95,9 @@ function jsonClient(o: { label: string; restartNote?: string; dir: (home: string
       if (node === undefined) return "available";
       return JSON.stringify(node) === JSON.stringify(o.entry(cmd)) ? "connected" : "outdated";
     },
-    connect: (env, cmd) => editJsonConfig(path(env.home), o.keys, o.entry(cmd)),
+    connect: (env, cmd) => editJsonConfig(path(env), o.keys, o.entry(cmd)),
     async disconnect(env) {
-      if (await env.exists(path(env.home))) await editJsonConfig(path(env.home), o.keys, undefined);
+      if (await env.exists(path(env))) await editJsonConfig(path(env), o.keys, undefined);
     },
   };
 }
@@ -125,7 +129,12 @@ function cliClient(o: { label: string; bin: string; addArgs: (c: McpCommand) => 
   };
 }
 
-const appSupport = (home: string, ...p: string[]) => join(home, "Library", "Application Support", ...p);
+/** The per-user app settings folder: `~/Library/Application Support` (macOS), `%APPDATA%` (Windows), `~/.config` (Linux). */
+export function appConfigDir(env: ClientEnv, ...p: string[]): string {
+  if (env.platform === "darwin") return join(env.home, "Library", "Application Support", ...p);
+  if (env.platform === "win32") return join(env.appData || join(env.home, "AppData", "Roaming"), ...p);
+  return join(env.home, ".config", ...p);
+}
 
 export const CLIENTS: Record<ClientId, Client> = {
   "claude-code": cliClient({
@@ -145,7 +154,7 @@ export const CLIENTS: Record<ClientId, Client> = {
   "claude-desktop": jsonClient({
     label: "Claude Desktop",
     restartNote: "Tutup lalu buka lagi Claude Desktop supaya Sketch Out terbaca.",
-    dir: (h) => appSupport(h, "Claude"),
+    dir: (e) => appConfigDir(e, "Claude"),
     file: "claude_desktop_config.json",
     keys: ["mcpServers", SERVER_NAME],
     entry: mcpServersEntry,
@@ -153,7 +162,7 @@ export const CLIENTS: Record<ClientId, Client> = {
   opencode: jsonClient({
     label: "OpenCode",
     restartNote: "Mulai sesi OpenCode baru supaya Sketch Out terbaca.",
-    dir: (h) => join(h, ".config", "opencode"),
+    dir: (e) => join(e.home, ".config", "opencode"), // also on Windows: %USERPROFILE%\\.config\\opencode
     file: "opencode.json",
     keys: ["mcp", SERVER_NAME],
     entry: (c) => ({ type: "local", command: [c.command, ...c.args], enabled: true }),
@@ -161,7 +170,7 @@ export const CLIENTS: Record<ClientId, Client> = {
   gemini: jsonClient({
     label: "Gemini CLI",
     restartNote: "Mulai sesi Gemini CLI baru supaya Sketch Out terbaca.",
-    dir: (h) => join(h, ".gemini"),
+    dir: (e) => join(e.home, ".gemini"),
     file: "settings.json",
     keys: ["mcpServers", SERVER_NAME],
     entry: mcpServersEntry,
@@ -169,7 +178,7 @@ export const CLIENTS: Record<ClientId, Client> = {
   cursor: jsonClient({
     label: "Cursor",
     restartNote: "Muat ulang Cursor supaya Sketch Out terbaca.",
-    dir: (h) => join(h, ".cursor"),
+    dir: (e) => join(e.home, ".cursor"),
     file: "mcp.json",
     keys: ["mcpServers", SERVER_NAME],
     entry: mcpServersEntry,
@@ -177,17 +186,15 @@ export const CLIENTS: Record<ClientId, Client> = {
   vscode: jsonClient({
     label: "VS Code",
     restartNote: "Muat ulang jendela VS Code supaya Sketch Out terbaca.",
-    dir: (h) => appSupport(h, "Code", "User"),
+    dir: (e) => appConfigDir(e, "Code", "User"),
     file: "mcp.json",
     keys: ["servers", SERVER_NAME],
     entry: (c) => ({ type: "stdio", command: c.command, args: c.args }),
   }),
 };
 
-const shellQuote = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`;
-
-/** For AI clients not in the list. */
-export function copyText(kind: "command" | "json", cmd: McpCommand): string {
-  if (kind === "command") return [shellQuote(cmd.command), ...cmd.args].join(" ");
+/** For AI clients not in the list. The command is quoted for the platform's own shell. */
+export function copyText(kind: "command" | "json", cmd: McpCommand, platform: NodeJS.Platform = process.platform): string {
+  if (kind === "command") return platform === "win32" ? [cmdQuote(cmd.command), ...cmd.args.map(cmdQuote)].join(" ") : [posixQuote(cmd.command), ...cmd.args].join(" ");
   return JSON.stringify({ mcpServers: { [SERVER_NAME]: mcpServersEntry(cmd) } }, null, 2);
 }

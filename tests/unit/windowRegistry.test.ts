@@ -15,6 +15,8 @@ describe("docKey", () => {
   it("keys local docs by path and drive docs by localId", () => {
     expect(docKey({ kind: "local", path: "/a.excalidraw" })).toBe("local:/a.excalidraw");
     expect(docKey({ kind: "local", path: null })).toBeNull();
+    expect(docKey({ kind: "local", path: "C:\\Notes\\A.excalidraw" })).toBe(docKey({ kind: "local", path: "c:/notes/a.excalidraw" }));
+    expect(docKey({ kind: "local", path: "/A.excalidraw" })).not.toBe(docKey({ kind: "local", path: "/a.excalidraw" }));
     expect(docKey({ kind: "drive", localId: "L1", fileId: "F1" })).toBe("drive:L1");
   });
 });

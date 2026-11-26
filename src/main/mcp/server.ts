@@ -2,10 +2,12 @@ import { chmodSync, rmSync } from "node:fs";
 import { createServer, type Socket } from "node:net";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { LineTransport } from "./lineTransport";
+import { isNamedPipe } from "./socketPath";
 
-/** Listen on the Unix socket that `Sketch Out --mcp` bridges connect to; one MCP session per connection. */
+/** Listen on the Unix socket (named pipe on Windows) that `Sketch Out --mcp` bridges connect to; one MCP session per connection. */
 export function startMcpServer(sockPath: string, makeServer: () => McpServer): () => void {
-  rmSync(sockPath, { force: true }); // stale socket from a crash
+  const onDisk = !isNamedPipe(sockPath);
+  if (onDisk) rmSync(sockPath, { force: true }); // stale socket from a crash
   const sockets = new Set<Socket>();
   const server = createServer((sock) => {
     sockets.add(sock);
@@ -17,6 +19,7 @@ export function startMcpServer(sockPath: string, makeServer: () => McpServer): (
   });
   server.on("error", () => {});
   server.listen(sockPath, () => {
+    if (!onDisk) return; // a named pipe has no file mode; Windows applies its default pipe ACL
     try {
       chmodSync(sockPath, 0o600);
     } catch {
@@ -26,6 +29,6 @@ export function startMcpServer(sockPath: string, makeServer: () => McpServer): (
   return () => {
     for (const s of sockets) s.destroy();
     server.close();
-    rmSync(sockPath, { force: true });
+    if (onDisk) rmSync(sockPath, { force: true });
   };
 }

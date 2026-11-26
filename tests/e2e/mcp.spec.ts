@@ -49,7 +49,7 @@ test("an AI client draws in the open note through `--mcp`, as one undo step", as
     await expect.poll(() => fileTypes(alur), { timeout: 5000 }).toContain("arrow");
 
     await page.locator("canvas.excalidraw__canvas.interactive").click({ position: { x: 20, y: 400 } });
-    await page.keyboard.press("Meta+z");
+    await page.keyboard.press("ControlOrMeta+z");
     await expect.poll(() => sceneTypes(page)).toEqual(["diamond"]);
 
     const outside = await ai.callTool({ name: "read_note", arguments: { path: "/etc/hosts.excalidraw" } });

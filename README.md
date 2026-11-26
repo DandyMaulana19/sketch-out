@@ -55,14 +55,54 @@ Whiteboard desktop berbasis editor Excalidraw resmi (`@excalidraw/excalidraw`, M
   swift scripts/render-icon.swift resources/icon.svg resources/icon.png
   ```
 
-### Windows
-**Belum didukung.** Kodenya mayoritas sudah lintas platform (Electron + React + Excalidraw), tapi beberapa bagian masih khusus macOS:
-- MCP memakai socket Unix (Windows butuh named pipe);
-- jendela "Hubungkan ke AI" memakai path pengaturan `~/Library/...` dan shell `zsh`;
-- mode folder menggabungkan path dengan `/`;
-- `npm run dist` hanya membuat installer Mac.
+### Windows (x64)
+Sebaiknya build **di mesin Windows**. `npm run dist:win` juga berhasil membuat installer dari Mac tanpa Wine, tetapi hasilnya tetap perlu dicoba di Windows.
 
-Versi Windows direncanakan di branch `windows`. Membuat installer Windows sebaiknya dilakukan di mesin Windows; dari Mac butuh Wine.
+**Yang perlu disiapkan**
+- Windows 10 atau 11, 64-bit.
+- [Node.js](https://nodejs.org/) 22 atau lebih baru (installer resmi sudah termasuk npm). Cek dengan `node -v` di PowerShell.
+- [Git for Windows](https://git-scm.com/download/win).
+- Ruang disk kosong sekitar 2 GB.
+
+**Langkah** (di PowerShell atau Command Prompt):
+
+1. Clone repo, masuk ke foldernya, lalu pindah ke branch `windows`:
+
+   ```bash
+   git clone https://github.com/<username>/sketch-out.git
+   ```
+
+   ```bash
+   cd sketch-out
+   ```
+
+   ```bash
+   git checkout windows
+   ```
+
+2. Pasang dependensi:
+
+   ```bash
+   npm install
+   ```
+
+3. (Opsional) Buat `.env` untuk Google Drive, sama seperti di macOS.
+
+4. Build installer:
+
+   ```bash
+   npm run dist:win
+   ```
+
+   Hasilnya `dist\Sketch Out-<versi>-x64-setup.exe`.
+
+5. Jalankan installer itu. Installer belum ditandatangani, jadi Windows SmartScreen akan memperingatkan: klik **More info**, lalu **Run anyway**. App dipasang untuk pengguna saat ini saja, tanpa hak admin.
+
+**Bedanya dengan macOS**
+- Pintasan memakai `Ctrl` sebagai ganti `⌘` (misalnya `Ctrl+Shift+O` untuk membuka folder).
+- MCP memakai named pipe `\\.\pipe\sketch-out-…` sebagai ganti socket Unix.
+- "Hubungkan ke AI" menulis pengaturan Claude Desktop di `%APPDATA%\Claude\claude_desktop_config.json` dan VS Code di `%APPDATA%\Code\User\mcp.json`. Cursor, Gemini CLI, dan OpenCode tetap di folder pengguna (`%USERPROFILE%\.cursor`, `.gemini`, `.config\opencode`). CLI seperti `claude` dan `codex` dijalankan lewat `cmd.exe`, jadi harus ada di PATH Windows.
+- Versi Windows belum dites otomatis di Windows sungguhan. Unit test mencakup cabang-cabang khusus Windows, tetapi e2e baru dijalankan di macOS.
 
 ## Mengembangkan
 

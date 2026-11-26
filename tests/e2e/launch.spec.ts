@@ -1,7 +1,8 @@
 import { test, expect, _electron as electron } from "@playwright/test";
+import { newUserData } from "./helpers";
 
 test("app launches the Excalidraw editor in a locked-down renderer, fonts available offline", async () => {
-  const app = await electron.launch({ args: ["."], env: { ...process.env, E2E: "1" } });
+  const app = await electron.launch({ args: ["."], env: { ...process.env, E2E: "1", SKETCHOUT_USER_DATA: newUserData() } }); // own userData: an installed Sketch Out would otherwise take the single-instance lock
   try {
     const page = await app.firstWindow();
     await page.route("**/*", (r) =>

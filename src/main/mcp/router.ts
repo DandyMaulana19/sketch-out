@@ -6,6 +6,7 @@ import { getAppStore } from "../services/appStores";
 import { findFolderWindowFor, openDocument, registry } from "../windows";
 import { openFolder } from "../ipc/folderHandlers";
 import type { AiOp, AiRouter } from "./tools";
+import { isInside } from "@shared/paths";
 
 const TIMEOUT_MS = 20_000;
 const pending = new Map<string, { resolve(v: unknown): void; reject(e: Error): void; timer: ReturnType<typeof setTimeout> }>();
@@ -23,7 +24,7 @@ async function windowFor(path: string): Promise<BrowserWindow> {
   if (folderWin) return folderWin;
   const recent = getAppStore()
     .get()
-    .recentFolders.filter((d) => path.startsWith(`${d}/`))
+    .recentFolders.filter((d) => isInside(path, d))
     .sort((a, b) => b.length - a.length)[0];
   if (recent) return openFolder(recent);
   return openDocument({ kind: "local", path });

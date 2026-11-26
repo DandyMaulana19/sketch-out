@@ -2,15 +2,18 @@ import { describe, it, expect } from "vitest";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { CLIENTS, copyText, type ClientEnv } from "../../src/main/ai/clients";
+import { appConfigDir, CLIENTS, copyText, type ClientEnv } from "../../src/main/ai/clients";
+import { cmdQuote, shellInvocation, whichInvocation } from "../../src/main/ai/shell";
 
 const cmd = { command: "/Applications/Sketch Out.app/Contents/MacOS/Sketch Out", args: ["--mcp"] };
 
-function env(opts: { bins?: string[]; get?: (bin: string) => { code: number; stdout: string } } = {}) {
+function env(opts: { bins?: string[]; get?: (bin: string) => { code: number; stdout: string }; platform?: NodeJS.Platform; appData?: string } = {}) {
   const home = mkdtempSync(join(tmpdir(), "so-home-"));
   const calls: string[][] = [];
   const e: ClientEnv = {
     home,
+    platform: opts.platform ?? "darwin",
+    appData: opts.appData,
     async exec(bin, args) {
       calls.push([bin, ...args]);
       if (args[1] === "get") return opts.get?.(bin) ?? { code: 1, stdout: "" };
@@ -109,7 +112,60 @@ describe("CLI clients", () => {
 
 describe("copyText", () => {
   it("gives a shell command and an mcpServers JSON block", () => {
-    expect(copyText("command", cmd)).toBe(`'${cmd.command}' --mcp`);
+    expect(copyText("command", cmd, "darwin")).toBe(`'${cmd.command}' --mcp`);
     expect(JSON.parse(copyText("json", cmd))).toEqual({ mcpServers: { "sketch-out": { command: cmd.command, args: ["--mcp"] } } });
+  });
+});
+
+describe("Windows", () => {
+  const winCmd = { command: "C:\\Program Files\\Sketch Out\\Sketch Out.exe", args: ["--mcp"] };
+
+  it("puts Claude Desktop and VS Code under %APPDATA%, the rest under the home folder", async () => {
+    const appData = mkdtempSync(join(tmpdir(), "so-appdata-"));
+    const { e, home } = env({ platform: "win32", appData });
+    for (const d of [join(appData, "Claude"), join(appData, "Code", "User"), join(home, ".cursor"), join(home, ".gemini"), join(home, ".config", "opencode")])
+      mkdirSync(d, { recursive: true });
+    for (const id of ["claude-desktop", "vscode", "cursor", "gemini", "opencode"] as const) await CLIENTS[id].connect(e, winCmd);
+    expect(JSON.parse(readFileSync(join(appData, "Claude", "claude_desktop_config.json"), "utf8")).mcpServers["sketch-out"]).toEqual({ command: winCmd.command, args: ["--mcp"] });
+    expect(JSON.parse(readFileSync(join(appData, "Code", "User", "mcp.json"), "utf8")).servers["sketch-out"].command).toBe(winCmd.command);
+    expect(existsSync(join(home, ".cursor", "mcp.json"))).toBe(true);
+    expect(existsSync(join(home, ".gemini", "settings.json"))).toBe(true);
+    expect(existsSync(join(home, ".config", "opencode", "opencode.json"))).toBe(true);
+    expect(existsSync(join(home, "Library"))).toBe(false);
+  });
+
+  it("falls back to <home>\\AppData\\Roaming when APPDATA is unset; Linux uses ~/.config", () => {
+    expect(appConfigDir({ ...env({ platform: "win32" }).e, home: "/h" }, "Claude")).toBe(join("/h", "AppData", "Roaming", "Claude"));
+    expect(appConfigDir({ ...env({ platform: "linux" }).e, home: "/h" }, "Code", "User")).toBe(join("/h", ".config", "Code", "User"));
+    expect(appConfigDir({ ...env().e, home: "/h" }, "Claude")).toBe(join("/h", "Library", "Application Support", "Claude"));
+  });
+
+  it("runs CLIs through cmd.exe with Windows quoting, and finds them with where.exe", () => {
+    const inv = shellInvocation("claude", ["mcp", "add", "-s", "user", "sketch-out", "--", winCmd.command, "--mcp"], "win32");
+    expect(inv.file).toBe("cmd.exe");
+    expect(inv.windowsVerbatimArguments).toBe(true);
+    expect(inv.args).toEqual(["/d", "/s", "/c", `"claude mcp add -s user sketch-out -- "C:\\Program Files\\Sketch Out\\Sketch Out.exe" --mcp"`]);
+    expect(whichInvocation("claude", "win32")).toEqual({ file: "where.exe", args: ["claude"] });
+  });
+
+  it("keeps the macOS login-shell path", () => {
+    expect(shellInvocation("claude", ["mcp", "get", "it's"], "darwin", "/bin/bash")).toEqual({ file: "/bin/bash", args: ["-ilc", `'claude' 'mcp' 'get' 'it'\\''s'`] });
+    expect(whichInvocation("codex", "darwin")).toEqual({ file: "/bin/zsh", args: ["-ilc", "command -v 'codex'"] });
+  });
+
+  it("quotes for cmd: spaces and shell metacharacters quoted, trailing backslashes doubled, unsafe characters refused", () => {
+    expect(cmdQuote("--mcp")).toBe("--mcp");
+    expect(cmdQuote("a&b")).toBe(`"a&b"`);
+    expect(cmdQuote("")).toBe(`""`);
+    expect(cmdQuote("C:\\My Dir\\")).toBe(`"C:\\My Dir\\\\"`);
+    for (const bad of ['a"b', "%PATH%", "x!y", "a\nb"]) expect(() => cmdQuote(bad)).toThrow();
+  });
+
+  it("copies a cmd-quoted command", () => {
+    expect(copyText("command", winCmd, "win32")).toBe(`"${winCmd.command}" --mcp`);
+  });
+
+  it("refuses unsafe arguments when building a Windows command", () => {
+    expect(() => shellInvocation("claude", ['bad"arg'], "win32")).toThrow(/Windows/);
   });
 });

@@ -5,9 +5,9 @@ import { app, clipboard } from "electron";
 import { z } from "zod";
 import { handle } from "./register";
 import { CLIENT_IDS, CLIENTS, copyText, type ClientEnv, type ClientId, type McpCommand } from "../ai/clients";
+import { shellInvocation, whichInvocation, type Invocation } from "../ai/shell";
 
 const EXEC_TIMEOUT_MS = 20_000;
-const quote = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`;
 
 /** The command AI clients run to reach this app. */
 export function mcpCommand(): McpCommand {
@@ -16,11 +16,15 @@ export function mcpCommand(): McpCommand {
     : { command: process.execPath, args: [app.getAppPath(), "--mcp"] };
 }
 
-/** Run through an interactive login shell so CLIs installed via nvm, Homebrew, etc. are on PATH. */
-function shell(line: string): Promise<{ code: number; stdout: string }> {
+/** Run a CLI the platform's way (see ai/shell.ts): login shell on macOS/Linux, cmd.exe on Windows. */
+function run(inv: Invocation): Promise<{ code: number; stdout: string }> {
   return new Promise((resolve) => {
-    const sh = process.env.SHELL || "/bin/zsh";
-    const child = spawn(sh, ["-ilc", line], { stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, ELECTRON_RUN_AS_NODE: undefined } });
+    const child = spawn(inv.file, inv.args, {
+      stdio: ["ignore", "pipe", "pipe"],
+      env: { ...process.env, ELECTRON_RUN_AS_NODE: undefined },
+      windowsHide: true,
+      windowsVerbatimArguments: inv.windowsVerbatimArguments,
+    });
     let out = "";
     child.stdout.on("data", (d) => (out += d));
     child.stderr.on("data", (d) => (out += d));
@@ -36,10 +40,20 @@ function shell(line: string): Promise<{ code: number; stdout: string }> {
   });
 }
 
+const tryRun = (make: () => Invocation) => {
+  try {
+    return run(make());
+  } catch (e) {
+    return Promise.resolve({ code: 1, stdout: String((e as Error).message) });
+  }
+};
+
 const realEnv: ClientEnv = {
   home: homedir(),
-  exec: (bin, args) => shell([bin, ...args].map(quote).join(" ")),
-  which: async (bin) => (await shell(`command -v ${quote(bin)}`)).code === 0,
+  platform: process.platform,
+  appData: process.env.APPDATA,
+  exec: (bin, args) => tryRun(() => shellInvocation(bin, args, process.platform, process.env.SHELL)),
+  which: async (bin) => (await tryRun(() => whichInvocation(bin, process.platform, process.env.SHELL))).code === 0,
   exists: (p) => access(p).then(() => true, () => false),
 };
 
