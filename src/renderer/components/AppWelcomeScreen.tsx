@@ -1,9 +1,9 @@
 import { WelcomeScreen } from "@excalidraw/excalidraw";
 import type { ReactNode } from "react";
-import { ClockIcon, FolderOpenIcon } from "./icons";
-import { fileName, type FileActions } from "./AppMainMenu";
+import { ClockIcon, FolderIcon, FolderOpenIcon } from "./icons";
+import { fileName, folderName, type FileActions } from "./AppMainMenu";
 
-export function AppWelcomeScreen({ actions, recent, extra }: { actions: FileActions; recent: string[]; extra?: ReactNode }) {
+export function AppWelcomeScreen({ actions, recent, recentFolders, extra }: { actions: FileActions; recent: string[]; recentFolders: string[]; extra?: ReactNode }) {
   return (
     <WelcomeScreen>
       <WelcomeScreen.Hints.MenuHint />
@@ -18,7 +18,15 @@ export function AppWelcomeScreen({ actions, recent, extra }: { actions: FileActi
           <WelcomeScreen.Center.MenuItem onSelect={actions.openLocal} shortcut="⌘O" icon={FolderOpenIcon}>
             Buka file lokal…
           </WelcomeScreen.Center.MenuItem>
+          <WelcomeScreen.Center.MenuItem onSelect={actions.openFolder} shortcut="⌘⇧O" icon={FolderIcon}>
+            Buka folder…
+          </WelcomeScreen.Center.MenuItem>
           {extra}
+          {recentFolders.slice(0, 2).map((d) => (
+            <WelcomeScreen.Center.MenuItem key={d} onSelect={() => actions.openRecentFolder(d)} icon={FolderIcon} shortcut={null}>
+              {folderName(d)}
+            </WelcomeScreen.Center.MenuItem>
+          ))}
           {recent.slice(0, 3).map((p) => (
             <WelcomeScreen.Center.MenuItem key={p} onSelect={() => actions.openRecent(p)} icon={ClockIcon} shortcut={null}>
               {fileName(p)}

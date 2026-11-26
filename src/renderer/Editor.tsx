@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import { Excalidraw, MainMenu, WelcomeScreen, getNonDeletedElements } from "@excalidraw/excalidraw";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import type { MenuCommand } from "../preload/api";
 import type { SyncState } from "../shared/types";
 import type { Account, Env } from "./App";
 import { usePrefsAndLibrary } from "./prefs";
-import { DocumentSession, type SessionStatus } from "./doc/documentSession";
+import { DocumentSession, type SaveStatus, type SessionStatus } from "./doc/documentSession";
 import { makeDriveSink, makeLocalSink } from "./doc/sinks";
 import { currentJson, fingerprint, parseScene, serialize, type El } from "./doc/scene";
 import { refOf, type Doc } from "./doc/types";
@@ -48,15 +48,27 @@ type Overlay =
   | { kind: "signOut"; pending: number }
   | null;
 
-interface ViewProps {
+/** Lets a folder window save the open note before switching tabs. `flush` resolves true when nothing is left unsaved. */
+export interface DocHandle {
+  flush(): Promise<boolean>;
+}
+
+export interface ViewProps {
   doc: Doc;
   env: Env;
   account: Account;
   setAccount(a: Account): void;
   onReplace(d: Doc): void;
+  /** Folder windows only. */
+  handle?: MutableRefObject<DocHandle | null>;
+  onStatus?(s: SaveStatus): void;
+  onPath?(p: string): void;
+  onTheme?(t: "light" | "dark"): void;
+  /** Window title suffix instead of "Sketch Out" (the folder name). */
+  titleSuffix?: string;
 }
 
-function DocView({ doc, env, account, setAccount, onReplace }: ViewProps) {
+export function DocView({ doc, env, account, setAccount, onReplace, handle, onStatus, onPath, onTheme, titleSuffix }: ViewProps) {
   const [excalidrawAPI, setExcalidrawAPI] = useState<ExcalidrawImperativeAPI | null>(null);
   const [status, setStatus] = useState<SessionStatus>({ status: "saved", error: null });
   const [path, setPath] = useState(doc.kind === "local" ? doc.path : null);
@@ -85,6 +97,23 @@ function DocView({ doc, env, account, setAccount, onReplace }: ViewProps) {
     [],
   );
   useEffect(() => () => session.dispose(), [session]);
+  useEffect(() => {
+    if (!handle) return;
+    handle.current = {
+      flush: async () => {
+        await session.flush();
+        return !session.hasUnsavedChanges;
+      },
+    };
+    return () => {
+      handle.current = null;
+    };
+  }, [handle, session]);
+  useEffect(() => onStatus?.(status.status), [onStatus, status.status]);
+  useEffect(() => {
+    if (path) onPath?.(path);
+  }, [onPath, path]);
+  useEffect(() => onTheme?.(theme), [onTheme, theme]);
 
   const initialData = useMemo(async () => {
     const base = { libraryItems: env.library as never, appState: { theme: env.prefs.theme } };
@@ -99,7 +128,11 @@ function DocView({ doc, env, account, setAccount, onReplace }: ViewProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const refreshRecent = useCallback(() => void api.files.recent().then(setRecent), []);
+  const [recentFolders, setRecentFolders] = useState<string[]>([]);
+  const refreshRecent = useCallback(() => {
+    void api.files.recent().then(setRecent);
+    void api.folder.recent().then(setRecentFolders);
+  }, []);
   useEffect(refreshRecent, [refreshRecent]);
 
   useEffect(() => {
@@ -134,13 +167,13 @@ function DocView({ doc, env, account, setAccount, onReplace }: ViewProps) {
   useEffect(() => {
     void api.app.setDocState({
       doc: refOf(doc, path),
-      title: `${title} — Sketch Out`,
+      title: `${title} — ${titleSuffix ?? "Sketch Out"}`,
       edited: status.status !== "saved",
       untitled: doc.kind === "local" && !path,
       nonEmpty,
       recoveryId: localTarget.current.recoveryId,
     });
-  }, [doc, title, status.status, path, nonEmpty]);
+  }, [doc, title, titleSuffix, status.status, path, nonEmpty]);
 
   const replaceable = doc.kind === "local" && !path && !nonEmpty;
   const dropRecovery = async () => {
@@ -246,6 +279,8 @@ function DocView({ doc, env, account, setAccount, onReplace }: ViewProps) {
       },
       saveAs: () => void saveAs(),
       openRecent: (p) => void openPath(p).catch((e) => toast(`Tidak bisa membuka: ${errText(e)}`)),
+      openFolder: () => void api.folder.openDialog().catch((e) => toast(`Tidak bisa membuka folder: ${errText(e)}`)),
+      openRecentFolder: (d) => void api.folder.open({ dir: d }).catch((e) => toast(`Tidak bisa membuka folder: ${errText(e)}`)),
     }),
     [openPath, saveAs, toast],
   );
@@ -355,8 +390,8 @@ function DocView({ doc, env, account, setAccount, onReplace }: ViewProps) {
         UIOptions={{ canvasActions: { loadScene: false, saveToActiveFile: false, export: false } }}
         renderTopRightUI={() => <SyncBadge view={badge} />}
       >
-        <AppMainMenu actions={actions} recent={recent} extra={driveItems} langCode={prefs.langCode} onLangChange={prefs.setLangCode} />
-        <AppWelcomeScreen actions={actions} recent={recent} extra={welcomeDrive} />
+        <AppMainMenu actions={actions} recent={recent} recentFolders={recentFolders} extra={driveItems} langCode={prefs.langCode} onLangChange={prefs.setLangCode} />
+        <AppWelcomeScreen actions={actions} recent={recent} recentFolders={recentFolders} extra={welcomeDrive} />
       </Excalidraw>
 
       {doc.kind === "drive" && syncState?.notice && (

@@ -1,29 +1,34 @@
 import { MainMenu, languages } from "@excalidraw/excalidraw";
 import type { ReactNode } from "react";
-import { ClockIcon, FilePlusIcon, FolderOpenIcon, SaveIcon } from "./icons";
+import { ClockIcon, FilePlusIcon, FolderIcon, FolderOpenIcon, SaveIcon } from "./icons";
 
 export interface FileActions {
   newDoc(): void;
   openLocal(): void;
   saveAs(): void;
   openRecent(path: string): void;
+  openFolder(): void;
+  openRecentFolder(dir: string): void;
 }
 
 export const fileName = (p: string) => p.split(/[\\/]/).pop()!.replace(/\.excalidraw$/i, "");
+export const folderName = (p: string) => p.split(/[\\/]/).filter(Boolean).pop() ?? p;
 
 interface Props {
   actions: FileActions;
   recent: string[];
+  recentFolders: string[];
   extra?: ReactNode;
   langCode: string;
   onLangChange(code: string): void;
 }
 
-export function AppMainMenu({ actions, recent, extra, langCode, onLangChange }: Props) {
+export function AppMainMenu({ actions, recent, recentFolders, extra, langCode, onLangChange }: Props) {
   return (
     <MainMenu>
       <MainMenu.Item icon={FilePlusIcon} onSelect={actions.newDoc} shortcut="⌘N">Baru</MainMenu.Item>
       <MainMenu.Item icon={FolderOpenIcon} onSelect={actions.openLocal} shortcut="⌘O">Buka file lokal…</MainMenu.Item>
+      <MainMenu.Item icon={FolderIcon} onSelect={actions.openFolder} shortcut="⌘⇧O">Buka folder…</MainMenu.Item>
       <MainMenu.Item icon={SaveIcon} onSelect={actions.saveAs} shortcut="⌘⇧S">Simpan sebagai…</MainMenu.Item>
       {extra}
       {recent.length > 0 && (
@@ -31,6 +36,15 @@ export function AppMainMenu({ actions, recent, extra, langCode, onLangChange }: 
           {recent.slice(0, 5).map((p) => (
             <MainMenu.Item key={p} icon={ClockIcon} onSelect={() => actions.openRecent(p)} title={p}>
               {fileName(p)}
+            </MainMenu.Item>
+          ))}
+        </MainMenu.Group>
+      )}
+      {recentFolders.length > 0 && (
+        <MainMenu.Group title="Folder terbaru">
+          {recentFolders.slice(0, 5).map((d) => (
+            <MainMenu.Item key={d} icon={FolderIcon} onSelect={() => actions.openRecentFolder(d)} title={d}>
+              {folderName(d)}
             </MainMenu.Item>
           ))}
         </MainMenu.Group>

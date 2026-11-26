@@ -5,3 +5,4 @@ export const SaveIcon = (<svg {...P}><path d="M5 3h11l5 5v11a2 2 0 0 1-2 2H5a2 2
 export const ClockIcon = (<svg {...P}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>);
 export const CloudIcon = (<svg {...P}><path d="M7 18a5 5 0 1 1 .9-9.9A6 6 0 0 1 19 10a4 4 0 0 1-1 7.9z" /></svg>);
 export const UserIcon = (<svg {...P}><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>);
+export const FolderIcon = (<svg {...P}><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>);

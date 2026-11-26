@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Prefs } from "../preload/api";
 import { Editor } from "./Editor";
+import { FolderWorkspace } from "./folder/FolderWorkspace";
 import type { Doc } from "./doc/types";
 
 const api = window.sketchOut;
@@ -15,8 +16,15 @@ export interface Env {
   account: Account;
 }
 
-async function boot(): Promise<Doc> {
+type Boot = { folder: string } | { doc: Doc };
+
+async function boot(): Promise<Boot> {
   const init = await api.app.getInitialDoc();
+  if (init.folder) return { folder: init.folder };
+  return { doc: await bootDoc(init) };
+}
+
+async function bootDoc(init: Awaited<ReturnType<typeof api.app.getInitialDoc>>): Promise<Doc> {
   const doc = init.doc;
   if (doc?.kind === "drive") {
     const d = await api.drive.readCached({ localId: doc.localId });
@@ -31,15 +39,16 @@ async function boot(): Promise<Doc> {
 }
 
 export default function App() {
-  const [state, setState] = useState<{ doc: Doc; env: Env } | null>(null);
+  const [state, setState] = useState<{ boot: Boot; env: Env } | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     Promise.all([boot(), api.app.getPrefs(), api.app.loadLibrary(), api.auth.status()]).then(
-      ([doc, prefs, library, account]) => setState({ doc, env: { prefs, library, account } }),
+      ([b, prefs, library, account]) => setState({ boot: b, env: { prefs, library, account } }),
       (e) => setError(String(e?.message ?? e)),
     );
   }, []);
   if (error) return <div style={{ padding: 24, fontFamily: "system-ui" }}>Gagal membuka dokumen: {error}</div>;
   if (!state) return null;
-  return <Editor initial={state.doc} env={state.env} />;
+  if ("folder" in state.boot) return <FolderWorkspace folder={state.boot.folder} env={state.env} />;
+  return <Editor initial={state.boot.doc} env={state.env} />;
 }
