@@ -76,7 +76,7 @@ export function DriveDialog({ dark, currentFileId, onClose, onOpen, onNew, onErr
       <div className="so-modal so-drive">
         <div className="so-drive__head">
           <h2 className="so-modal__title">Google Drive</h2>
-          <button type="button" className="so-btn so-btn--primary" onClick={onNew} disabled={offline && false}>
+          <button type="button" className="so-btn so-btn--primary" onClick={onNew}>
             Baru di Drive
           </button>
           <button type="button" className="so-icon-btn" aria-label="Tutup" onClick={onClose}>✕</button>

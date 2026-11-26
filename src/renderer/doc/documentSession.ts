@@ -50,10 +50,17 @@ export class DocumentSession<E> {
 
   onChange(elements: readonly E[], appState: object, files: Files): void {
     const key = this.key(elements, files);
-    if (key === this.lastSavedKey && !this.timer) return;
     if (this.latest && key === this.latest.key && this.timer) return;
+    if (key === this.lastSavedKey) {
+      // Back to the persisted content (e.g. undo): nothing to save.
+      const wasPending = !!this.timer;
+      if (this.timer) clearTimeout(this.timer);
+      this.timer = null;
+      this.latest = { elements, appState, files, key };
+      if (wasPending && !this.inFlight) this.emit("saved");
+      return;
+    }
     this.latest = { elements, appState, files, key };
-    if (key === this.lastSavedKey) return;
     this.emit("pending");
     if (this.timer) clearTimeout(this.timer);
     this.timer = setTimeout(() => {

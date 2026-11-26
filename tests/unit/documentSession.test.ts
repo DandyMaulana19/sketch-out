@@ -87,4 +87,17 @@ describe("DocumentSession", () => {
     await s.flush();
     expect(save).toHaveBeenCalledTimes(1);
   });
+
+  it("returns to 'saved' when an edit is undone before the autosave fires", async () => {
+    const save = vi.fn().mockResolvedValue(undefined);
+    const { s, statuses } = setup({ save });
+    s.markSaved([{ id: "a", version: 1 }], {});
+    s.onChange([{ id: "a", version: 2 }], {}, {});
+    s.onChange([{ id: "a", version: 1 }], {}, {});
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(save).not.toHaveBeenCalled();
+    expect(statuses.at(-1)).toBe("saved");
+    expect(s.hasUnsavedChanges).toBe(false);
+  });
 });
+
