@@ -1,0 +1,37 @@
+{
+  "name": "sketch-out",
+  "productName": "Sketch Out",
+  "version": "0.1.0",
+  "description": "Sketch Out — whiteboard desktop berbasis Excalidraw dengan penyimpanan lokal & Google Drive",
+  "main": "./out/main/index.js",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "dist": "npm run build && electron-builder --mac"
+  },
+  "dependencies": {
+    "@excalidraw/excalidraw": "0.18.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1",
+    "@types/node": "22.20.7",
+    "@types/react": "19.3.3",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.3.0",
+    "electron": "45.5.0",
+    "electron-builder": "26.18.0",
+    "electron-vite": "6.0.0",
+    "typescript": "5.9.3",
+    "vite": "8.3.8",
+    "vite-plugin-static-copy": "4.1.1",
+    "vitest": "5.1.2"
+  }
+}
