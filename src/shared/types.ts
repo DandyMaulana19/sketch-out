@@ -30,3 +30,10 @@ export interface CacheMeta {
   lastSyncedAt: number | null;
   lastError: string | null;
 }
+/** A note inside an opened folder. `rel` is relative to the folder, with "/" separators. */
+export interface NoteInfo {
+  name: string;
+  path: string;
+  rel: string;
+  mtimeMs: number;
+}
