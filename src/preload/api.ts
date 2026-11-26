@@ -26,7 +26,7 @@ export interface Prefs {
   theme: "light" | "dark";
   langCode: string;
 }
-export type MenuCommand = "new" | "open" | "save" | "saveAs" | "flushThenClose" | "saveAsThenClose" | "closeTab" | "nextTab" | "prevTab";
+export type MenuCommand = "new" | "open" | "save" | "saveAs" | "flushThenClose" | "saveAsThenClose" | "closeTab" | "nextTab" | "prevTab" | "aiConnect";
 export type AiOp = "read" | "view" | "add" | "update" | "delete" | "mermaid";
 export interface AiRequest {
   id: string;

@@ -13,7 +13,26 @@ function toFocused(cmd: MenuCommand) {
 export function installMenu(): void {
   const isMac = process.platform === "darwin";
   const template: MenuItemConstructorOptions[] = [
-    ...(isMac ? [{ role: "appMenu" as const }] : []),
+    ...(isMac
+      ? [
+          {
+            label: app.name,
+            submenu: [
+              { role: "about" as const },
+              { type: "separator" as const },
+              { label: "Hubungkan ke AI…", click: toFocused("aiConnect") },
+              { type: "separator" as const },
+              { role: "services" as const },
+              { type: "separator" as const },
+              { role: "hide" as const },
+              { role: "hideOthers" as const },
+              { role: "unhide" as const },
+              { type: "separator" as const },
+              { role: "quit" as const },
+            ],
+          },
+        ]
+      : []),
     {
       label: "File",
       submenu: [

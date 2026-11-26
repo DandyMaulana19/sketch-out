@@ -1,6 +1,6 @@
 import { MainMenu, languages } from "@excalidraw/excalidraw";
 import type { ReactNode } from "react";
-import { ClockIcon, FilePlusIcon, FolderIcon, FolderOpenIcon, SaveIcon } from "./icons";
+import { ClockIcon, FilePlusIcon, FolderIcon, FolderOpenIcon, SaveIcon, SparkIcon } from "./icons";
 
 export interface FileActions {
   newDoc(): void;
@@ -9,6 +9,7 @@ export interface FileActions {
   openRecent(path: string): void;
   openFolder(): void;
   openRecentFolder(dir: string): void;
+  connectAi(): void;
 }
 
 export const fileName = (p: string) => p.split(/[\\/]/).pop()!.replace(/\.excalidraw$/i, "");
@@ -31,6 +32,7 @@ export function AppMainMenu({ actions, recent, recentFolders, extra, langCode, o
       <MainMenu.Item icon={FolderIcon} onSelect={actions.openFolder} shortcut="⌘⇧O">Buka folder…</MainMenu.Item>
       <MainMenu.Item icon={SaveIcon} onSelect={actions.saveAs} shortcut="⌘⇧S">Simpan sebagai…</MainMenu.Item>
       {extra}
+      <MainMenu.Item icon={SparkIcon} onSelect={actions.connectAi}>Hubungkan ke AI…</MainMenu.Item>
       {recent.length > 0 && (
         <MainMenu.Group title="File terbaru">
           {recent.slice(0, 5).map((p) => (

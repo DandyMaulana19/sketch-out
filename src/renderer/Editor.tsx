@@ -16,6 +16,7 @@ import { Modal } from "./components/Modal";
 import { DriveDialog } from "./components/DriveDialog";
 import { ConflictNotice } from "./components/ConflictNotice";
 import { NameDialog } from "./components/NameDialog";
+import { AiConnectDialog } from "./components/AiConnectDialog";
 import { CloudIcon, UserIcon } from "./components/icons";
 import { registerDocHandler } from "./ai/aiHost";
 import { runCanvasOp } from "./ai/canvasOps";
@@ -48,6 +49,7 @@ type Overlay =
   | { kind: "drive" }
   | { kind: "nameForDrive"; initial: string; then: "copy" | "new" }
   | { kind: "signOut"; pending: number }
+  | { kind: "ai" }
   | null;
 
 /** Lets a folder window save the open note before switching tabs. `flush` resolves true when nothing is left unsaved. */
@@ -282,6 +284,7 @@ export function DocView({ doc, env, account, setAccount, onReplace, handle, onSt
       saveAs: () => void saveAs(),
       openRecent: (p) => void openPath(p).catch((e) => toast(`Tidak bisa membuka: ${errText(e)}`)),
       openFolder: () => void api.folder.openDialog().catch((e) => toast(`Tidak bisa membuka folder: ${errText(e)}`)),
+      connectAi: () => setOverlay({ kind: "ai" }),
       openRecentFolder: (d) => void api.folder.open({ dir: d }).catch((e) => toast(`Tidak bisa membuka folder: ${errText(e)}`)),
     }),
     [openPath, saveAs, toast],
@@ -293,6 +296,7 @@ export function DocView({ doc, env, account, setAccount, onReplace, handle, onSt
       api.on("menu:command", async (payload) => {
         const cmd = payload as MenuCommand;
         if (cmd === "open") actions.openLocal();
+        else if (cmd === "aiConnect") actions.connectAi();
         else if (cmd === "saveAs") void saveAs();
         else if (cmd === "save") {
           if (doc.kind === "drive" || localTarget.current.path) await session.flush();
@@ -410,6 +414,8 @@ export function DocView({ doc, env, account, setAccount, onReplace, handle, onSt
           onDismiss={() => void api.sync.dismissNotice({ localId: doc.localId })}
         />
       )}
+
+      {overlay?.kind === "ai" && <AiConnectDialog dark={dark} onClose={() => setOverlay(null)} onToast={toast} />}
 
       {overlay?.kind === "drive" && (
         <DriveDialog

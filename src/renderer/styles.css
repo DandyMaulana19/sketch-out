@@ -99,3 +99,20 @@
 .so-ctx button { display: block; width: 100%; padding: 7px 10px; border: none; border-radius: 5px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .so-ctx button:hover { background: var(--so-hover); }
 .so-ctx button.is-danger { color: #e03131; }
+
+/* Connect to AI */
+.so-ai { width: min(520px, calc(100vw - 32px)); max-height: min(680px, calc(100vh - 48px)); display: flex; flex-direction: column; }
+.so-ai .so-modal__body { margin: 0 0 12px; font-size: 0.88rem; }
+.so-ai__list { list-style: none; margin: 0 -8px; padding: 0 8px; overflow: auto; }
+.so-ai__row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid rgba(0,0,0,.06); }
+.so-dark .so-ai__row { border-color: rgba(255,255,255,.07); }
+.so-ai__info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.so-ai__name { font-weight: 600; }
+.so-ai__status { font-size: 0.8rem; color: #8b8b94; }
+.so-ai__row.is-connected .so-ai__status { color: #2f9e44; font-weight: 600; }
+.so-ai__row.is-outdated .so-ai__status, .so-ai__row.is-unreadable .so-ai__status { color: #e8590c; }
+.so-ai__row.is-missing { opacity: .55; }
+.so-ai__note { font-size: 0.8rem; color: #6965db; }
+.so-dark .so-ai__note { color: #a8a5ff; }
+.so-ai__other { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,.06); font-size: 0.85rem; color: #8b8b94; }
+.so-ai__other span { flex: 1 1 100%; }
