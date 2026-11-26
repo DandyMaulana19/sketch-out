@@ -8,6 +8,7 @@ import { addRecent } from "../services/store";
 import { assertGranted, grantPath } from "../services/grants";
 import { RECOVERY_ID, type RecoveryStore } from "../services/recovery";
 import { createDocumentWindow, forceClose, infoFor } from "../windows";
+import { getAuth } from "../services/auth/instance";
 
 const FILTERS = [{ name: "Excalidraw", extensions: ["excalidraw"] }];
 const winOf = (e: IpcMainInvokeEvent) => {
@@ -99,3 +100,9 @@ export function registerAppHandlers(): void {
 }
 
 export const titleFromPath = (p: string) => basename(p, extname(p));
+
+export function registerAuthHandlers(): void {
+  handle("auth:signIn", z.undefined(), () => getAuth().signIn());
+  handle("auth:signOut", z.undefined(), () => getAuth().signOut());
+  handle("auth:status", z.undefined(), () => getAuth().status());
+}

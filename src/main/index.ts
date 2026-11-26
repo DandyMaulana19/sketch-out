@@ -3,7 +3,7 @@ import { app, BrowserWindow, session } from "electron";
 import { createDocumentWindow, setRecoveryDiscarder } from "./windows";
 import { CSP } from "./security";
 import { installMenu } from "./menu";
-import { registerAppHandlers, registerFileHandlers } from "./ipc/handlers";
+import { registerAppHandlers, registerAuthHandlers, registerFileHandlers } from "./ipc/handlers";
 import { RecoveryStore } from "./services/recovery";
 import { handleProtocolUrl } from "./library";
 
@@ -45,6 +45,7 @@ app.whenReady().then(async () => {
   setRecoveryDiscarder((id) => recovery.clear(id));
   registerFileHandlers(recovery);
   registerAppHandlers();
+  registerAuthHandlers();
   installMenu();
 
   const leftovers = (await recovery.list()).slice(0, MAX_RECOVERED_WINDOWS);

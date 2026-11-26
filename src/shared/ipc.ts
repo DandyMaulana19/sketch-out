@@ -18,6 +18,9 @@ export const CHANNELS = [
   "app:setPrefs",
   "app:loadLibrary",
   "app:saveLibrary",
+  "auth:signIn",
+  "auth:signOut",
+  "auth:status",
 ] as const satisfies readonly string[];
 export type Channel = (typeof CHANNELS)[number];
 

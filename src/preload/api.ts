@@ -43,6 +43,11 @@ export interface SketchOutApi {
     loadLibrary(): Promise<unknown[]>;
     saveLibrary(i: { items: unknown[] }): Promise<void>;
   };
+  auth: {
+    signIn(): Promise<{ email: string | null }>;
+    signOut(): Promise<void>;
+    status(): Promise<{ signedIn: boolean; email: string | null }>;
+  };
   on(event: AppEvent, cb: (payload: unknown) => void): () => void;
 }
 
