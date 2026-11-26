@@ -5,13 +5,12 @@ Pengguna menyimpan beberapa catatan `.excalidraw` dalam satu folder. Ia ingin me
 
 - **Sasaran:**
   - membuka folder lokal;
-  - sidebar berisi daftar catatan di folder itu;
+  - sidebar berupa pohon catatan di folder itu beserta subfoldernya; hanya subfolder yang (di kedalaman berapa pun) berisi `.excalidraw` yang tampil;
   - tab untuk catatan yang sedang dibuka;
   - membuat catatan baru dari sidebar;
   - installer di kisaran ~80–90 MB.
 - **Bukan sasaran:**
   - mode folder untuk Google Drive;
-  - subfolder (hanya file `.excalidraw` di tingkat teratas folder yang ditampilkan);
   - installer Intel/x64;
   - pindah ke Tauri.
 - **Anti-sasaran (gagal meski secara teknis jalan):**
@@ -29,14 +28,15 @@ Konsekuensi pendekatan 1 (keputusanku): riwayat undo tidak ikut terbawa ketika p
 ## Desain
 
 ### Tampilan
-Tampilannya: sidebar kiri (dengan tombol sembunyikan, dan daftar file diurutkan menurut nama), lalu baris tab di atas kanvas, lalu kanvas Excalidraw.
+Tampilannya: sidebar kiri (dengan tombol sembunyikan), lalu baris tab di atas kanvas, lalu kanvas Excalidraw.
 
-- Tab dibuka dengan klik di sidebar dan ditutup dengan ×.
+- Sidebar berupa pohon: folder dulu lalu file, masing-masing urut nama; subfolder bisa dilipat. Folder tanpa catatan (di kedalaman berapa pun) tidak tampil. Folder tersembunyi (diawali `.`) dan `node_modules` dilewati. Pemindaian dibatasi kedalaman 8 dan 5.000 file supaya folder raksasa tidak membuat app macet.
+- Tab dibuka dengan klik di sidebar dan ditutup dengan ×. Label tab = nama file; bila dua tab bernama sama, ditambah nama subfoldernya (`ide — riset`). Tooltip berisi path relatif.
 - Pindah tab dengan `Ctrl+Tab` / `Ctrl+Shift+Tab`.
 - Di jendela folder, `Cmd+W` menutup tab, bukan jendela. Kalau tab terakhir ditutup, muncul layar kosong bertuliskan "Pilih catatan di sidebar".
 - Sidebar menyediakan:
-  - "+ Catatan baru" (minta nama; nama ganda diberi akhiran " 2");
-  - menu klik kanan berisi Ganti nama dan Pindahkan ke Tempat Sampah (dengan konfirmasi; bisa dipulihkan dari Trash).
+  - "+ Catatan baru" di folder utama (minta nama; nama ganda diberi akhiran " 2"), dan klik kanan subfolder › "Catatan baru di sini";
+  - menu klik kanan catatan berisi Ganti nama (tetap di subfolder yang sama) dan Pindahkan ke Tempat Sampah (dengan konfirmasi; bisa dipulihkan dari Trash).
 - Tab dan baris sidebar untuk dokumen yang belum tersimpan diberi titik ●.
 
 ### Membuka folder
@@ -47,13 +47,13 @@ Tampilannya: sidebar kiri (dengan tombol sembunyikan, dan daftar file diurutkan 
 - Membuka satu file dari Finder atau lewat "Buka…" tetap memakai jendela file tunggal seperti sekarang.
 
 ### Proses utama
-- Izin folder: folder yang dipilih pengguna di-grant. `assertGranted` juga menerima file `.excalidraw` yang berada langsung di dalam folder ber-grant. Path dengan `..` atau symlink ke luar folder ditolak.
+- Izin folder: folder yang dipilih pengguna di-grant. `assertGranted` juga menerima file `.excalidraw` di dalam folder ber-grant (termasuk subfolder). Path dengan `..` atau symlink ke luar folder ditolak.
 - Channel baru:
   - `folder:openDialog`, `folder:list` (nama + mtime), `folder:create`, `folder:rename`, `folder:trash`;
   - `folder:recent`, `folder:getTabs` / `folder:setTabs`;
   - event `folder:changed`.
   - Semua input divalidasi dengan zod, nama file tanpa `/`.
-- Folder dipantau dengan `fs.watch` (dengan debounce sekitar 300 ms), sehingga sidebar ikut berubah saat file ditambah atau dihapus di Finder.
+- Folder dipantau dengan `fs.watch` rekursif (dengan debounce sekitar 300 ms), sehingga sidebar ikut berubah saat file ditambah atau dihapus di Finder.
 - Perubahan isi file dan file yang hilang memakai alur "berubah di luar" / "tidak ditemukan" yang sudah ada.
 
 ### Renderer
@@ -73,7 +73,7 @@ Pensil putih diagonal dengan penghapus merah muda di atas kotak ungu `#6965db`, 
 ## Test
 - Unit:
   - reducer tab;
-  - layanan folder: list hanya `.excalidraw` tingkat atas, nama ganda saat create/rename, penolakan path di luar folder;
+  - layanan folder: pemindaian rekursif hanya `.excalidraw`, subfolder kosong/tanpa catatan tidak muncul, nama ganda saat create/rename, penolakan path di luar folder;
   - aturan grant folder.
 - E2E:
   - buka folder fixture (lewat hook E2E), pindah tab;
