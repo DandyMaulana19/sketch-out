@@ -81,6 +81,37 @@ export class CacheStore {
     return this.revisions.get(localId) ?? 0;
   }
 
+  /**
+   * Record a finished upload. Runs inside the per-document queue so a writeDoc that started
+   * after `rev` was read keeps the document dirty.
+   */
+  async markSynced(localId: string, rev: number, patch: Partial<Omit<CacheMeta, "localId" | "dirty">>): Promise<{ meta: CacheMeta; clean: boolean }> {
+    this.dir(localId);
+    await this.load();
+    return this.serial(localId, async () => {
+      const m = this.metas.get(localId);
+      if (!m) throw new Error("Unknown document");
+      const clean = this.revision(localId) === rev;
+      const next = { ...m, ...patch, dirty: clean ? false : true };
+      await this.persistMeta(next);
+      return { meta: next, clean };
+    });
+  }
+
+  /** Replace the cached doc with content downloaded from Drive (not a local edit). */
+  async replaceFromRemote(localId: string, json: string, patch: Partial<Omit<CacheMeta, "localId" | "dirty">>): Promise<CacheMeta> {
+    const dir = this.dir(localId);
+    await this.load();
+    return this.serial(localId, async () => {
+      const m = this.metas.get(localId);
+      if (!m) throw new Error("Unknown document");
+      await atomicWriteFile(join(dir, "doc.excalidraw"), json);
+      const next = { ...m, ...patch, dirty: false };
+      await this.persistMeta(next);
+      return next;
+    });
+  }
+
   async readDoc(localId: string): Promise<string> {
     return readFile(join(this.dir(localId), "doc.excalidraw"), "utf8");
   }

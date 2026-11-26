@@ -56,3 +56,36 @@ describe("CacheStore", () => {
     await expect(c.readDoc("../../etc")).rejects.toThrow("Invalid localId");
   });
 });
+
+describe("CacheStore.markSynced", () => {
+  it("clears dirty only when no write happened since the given revision", async () => {
+    const c = new CacheStore(await root());
+    const m = await c.create({ fileId: null, name: "s", json: "{}", baseVersion: null, dirty: false });
+    const rev = await c.writeDoc(m.localId, "{1}");
+    const p = c.markSynced(m.localId, rev, { fileId: "f1", baseVersion: "2", lastSyncedAt: 5 });
+    await c.writeDoc(m.localId, "{2}"); // arrives while the upload result is being recorded
+    const r = await p;
+    expect(r.clean).toBe(false);
+    const meta = await c.getMeta(m.localId);
+    expect(meta.dirty).toBe(true);
+    expect(meta.fileId).toBe("f1");
+    expect(meta.baseVersion).toBe("2");
+  });
+  it("marks clean when nothing changed", async () => {
+    const c = new CacheStore(await root());
+    const m = await c.create({ fileId: null, name: "s", json: "{}", baseVersion: null, dirty: false });
+    const rev = await c.writeDoc(m.localId, "{1}");
+    expect((await c.markSynced(m.localId, rev, { baseVersion: "2" })).clean).toBe(true);
+    expect((await c.getMeta(m.localId)).dirty).toBe(false);
+  });
+});
+
+describe("CacheStore.replaceFromRemote", () => {
+  it("overwrites the doc with Drive content without marking it dirty", async () => {
+    const c = new CacheStore(await root());
+    const m = await c.create({ fileId: "f", name: "s", json: "{old}", baseVersion: "1", dirty: false });
+    await c.replaceFromRemote(m.localId, "{new}", { baseVersion: "4", name: "S2" });
+    expect(await c.readDoc(m.localId)).toBe("{new}");
+    expect(await c.getMeta(m.localId)).toMatchObject({ dirty: false, baseVersion: "4", name: "S2" });
+  });
+});
