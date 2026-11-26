@@ -29,4 +29,21 @@ describe("connectivity", () => {
     expect(c.current()).toBe(true);
     c.stop();
   });
+
+  it("a renderer 'offline' report is not overridden by polls while the OS state is unchanged", () => {
+    let os = true;
+    const onChange = vi.fn();
+    const c = createConnectivity({ isOnline: () => os, onChange, pollMs: 15000 });
+    c.report(false);
+    vi.advanceTimersByTime(45000);
+    expect(c.current()).toBe(false);
+    expect(onChange).toHaveBeenCalledTimes(1);
+    os = false;
+    vi.advanceTimersByTime(15000);
+    os = true;
+    vi.advanceTimersByTime(15000);
+    expect(c.current()).toBe(true);
+    c.stop();
+  });
 });
+

@@ -5,6 +5,7 @@ import type { DocRef } from "@shared/types";
 import type { DocState, InitialDoc, MenuCommand } from "../preload/api";
 import { installNavigationGuards, secureWebPreferences } from "./security";
 import { WindowRegistry } from "./windowRegistry";
+import { QuitState } from "./quitState";
 
 interface WinInfo {
   initial: InitialDoc;
@@ -13,12 +14,10 @@ interface WinInfo {
 }
 
 const infos = new Map<number, WinInfo>();
-let quitting = false;
+export const quitState = new QuitState();
 let onDiscardRecovery: (recoveryId: string) => Promise<void> = async () => {};
 
-app.on("before-quit", () => {
-  quitting = true;
-});
+app.on("before-quit", () => quitState.beforeQuit());
 
 export function setRecoveryDiscarder(fn: (recoveryId: string) => Promise<void>): void {
   onDiscardRecovery = fn;
@@ -71,7 +70,7 @@ export function forceClose(win: BrowserWindow): void {
   const i = infos.get(win.webContents.id);
   if (i) i.forceClose = true;
   win.close();
-  if (quitting) setImmediate(() => app.quit());
+  if (quitState.afterForcedClose()) setImmediate(() => app.quit());
 }
 
 function handleClose(win: BrowserWindow, e: Electron.Event): void {
@@ -94,7 +93,7 @@ function handleClose(win: BrowserWindow, e: Electron.Event): void {
         else if (response === 1) {
           if (st.recoveryId) await onDiscardRecovery(st.recoveryId);
           forceClose(win);
-        } else quitting = false;
+        } else quitState.closeCancelled();
       });
   } else if (st.edited) {
     e.preventDefault();

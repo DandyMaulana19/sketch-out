@@ -264,7 +264,8 @@ function DocView({ doc, env, account, setAccount, onReplace }: ViewProps) {
           await session.flush().catch(() => {});
           await api.app.closeWindow();
         } else if (cmd === "saveAsThenClose") {
-          if (await saveAs()) await api.app.closeWindow();
+          if (await saveAs().catch(() => false)) await api.app.closeWindow();
+          else await api.app.closeCancelled();
         }
       }),
     [actions, saveAs, session, doc],

@@ -45,6 +45,7 @@ export interface SketchOutApi {
     openDocument(i: { doc: DocRef }): Promise<void>;
     newWindow(): Promise<void>;
     closeWindow(): Promise<void>;
+    closeCancelled(): Promise<void>;
     getPrefs(): Promise<Prefs>;
     setPrefs(i: Partial<Prefs>): Promise<void>;
     loadLibrary(): Promise<unknown[]>;

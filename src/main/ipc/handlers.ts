@@ -7,7 +7,7 @@ import { getAppStore, getLibraryStore } from "../services/appStores";
 import { addRecent } from "../services/store";
 import { assertGranted, grantPath } from "../services/grants";
 import { RECOVERY_ID, type RecoveryStore } from "../services/recovery";
-import { createDocumentWindow, forceClose, infoFor, openDocument, registry } from "../windows";
+import { createDocumentWindow, forceClose, infoFor, openDocument, quitState, registry } from "../windows";
 import { forgetFolder, getSync } from "../services/drive/instance";
 import { getAuth } from "../services/auth/instance";
 
@@ -93,6 +93,7 @@ export function registerAppHandlers(): void {
   });
   handle("app:newWindow", z.undefined(), () => void createDocumentWindow(null));
   handle("app:closeWindow", z.undefined(), (_i, e) => forceClose(winOf(e)));
+  handle("app:closeCancelled", z.undefined(), () => quitState.closeCancelled());
 
   handle("app:getPrefs", z.undefined(), () => {
     const { theme, langCode } = getAppStore().get();

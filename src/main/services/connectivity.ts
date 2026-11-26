@@ -10,11 +10,19 @@ export interface Connectivity {
  */
 export function createConnectivity(opts: { isOnline(): boolean; onChange(online: boolean): void; pollMs?: number }): Connectivity {
   let online = opts.isOnline();
+  let lastOs = online;
   const set = (v: boolean) => {
     if (v === online) return;
     online = v;
     opts.onChange(v);
   };
-  const timer = setInterval(() => set(opts.isOnline()), opts.pollMs ?? 15_000);
+  // A poll only matters when the OS answer itself changes; otherwise a renderer report stands.
+  const timer = setInterval(() => {
+    const os = opts.isOnline();
+    if (os !== lastOs) {
+      lastOs = os;
+      set(os);
+    }
+  }, opts.pollMs ?? 15_000);
   return { current: () => online, report: set, stop: () => clearInterval(timer) };
 }

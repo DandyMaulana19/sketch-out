@@ -14,6 +14,7 @@ export const CHANNELS = [
   "app:openDocument",
   "app:newWindow",
   "app:closeWindow",
+  "app:closeCancelled",
   "app:getPrefs",
   "app:setPrefs",
   "app:loadLibrary",
