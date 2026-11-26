@@ -8,12 +8,14 @@ files:
   - out/**/*
   - package.json
 asar: true
+afterAllArtifactBuild: scripts/compress-dmg.cjs
+electronLanguages: [en, id]
 mac:
   category: public.app-category.productivity
   icon: resources/icon.png
   target:
     - target: dmg
-      arch: [arm64, x64]
+      arch: [arm64]
   hardenedRuntime: false
   identity: "-"
 dmg:

@@ -1,6 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <rect x="64" y="64" width="896" height="896" rx="200" fill="#6965db"/>
-  <path d="M250 640 C 330 420, 430 380, 520 470 S 700 600, 780 360" fill="none" stroke="#fff" stroke-width="56" stroke-linecap="round" stroke-linejoin="round"/>
-  <rect x="250" y="250" width="230" height="160" rx="28" fill="none" stroke="#fff" stroke-width="40" stroke-dasharray="1 0" opacity=".9"/>
-  <circle cx="730" cy="700" r="70" fill="none" stroke="#fff" stroke-width="40" opacity=".9"/>
+  <path d="M350 700 C 420 780, 480 650, 570 712 S 710 780, 775 690" fill="none" stroke="#fff" stroke-width="38" stroke-linecap="round" opacity=".55"/>
+  <g transform="translate(40 -40) rotate(-45 512 512)">
+    <rect x="680" y="437" width="130" height="150" rx="40" fill="#ff8fab"/>
+    <rect x="640" y="437" width="70" height="150" fill="#d0cef7"/>
+    <rect x="360" y="437" width="290" height="150" fill="#fff"/>
+    <rect x="360" y="487" width="290" height="50" fill="#ecebfd"/>
+    <polygon points="362,437 362,587 240,512" fill="#f6dcb0"/>
+    <polygon points="290,481 290,543 240,512" fill="#1e1e1e"/>
+  </g>
 </svg>

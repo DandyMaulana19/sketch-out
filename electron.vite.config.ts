@@ -5,11 +5,11 @@ import { viteStaticCopy } from "vite-plugin-static-copy";
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin({ exclude: ["zod"] })],
+    plugins: [externalizeDepsPlugin()],
     resolve: { alias: { "@shared": resolve("src/shared") } },
   },
   preload: {
-    plugins: [externalizeDepsPlugin({ exclude: ["zod"] })],
+    plugins: [externalizeDepsPlugin()],
     resolve: { alias: { "@shared": resolve("src/shared") } },
     build: { rollupOptions: { output: { format: "cjs", entryFileNames: "[name].cjs" } } },
   },
@@ -20,7 +20,12 @@ export default defineConfig({
       react(),
       viteStaticCopy({
         targets: [
-          { src: resolve("node_modules/@excalidraw/excalidraw/dist/prod/fonts"), dest: ".", rename: { stripBase: 5 } },
+          // Every bundled font except Xiaolai (12 MB CJK handwriting font; CJK text falls back to system fonts).
+          ...["Assistant", "Cascadia", "ComicShanns", "Excalifont", "Liberation", "Lilita", "Nunito", "Virgil"].map((f) => ({
+            src: resolve(`node_modules/@excalidraw/excalidraw/dist/prod/fonts/${f}`),
+            dest: "fonts",
+            rename: { stripBase: 6 },
+          })),
         ],
       }),
     ],
